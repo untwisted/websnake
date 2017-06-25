@@ -1,4 +1,5 @@
-untwisted==1.1.0
+untwisted==1.2.0
+
 
 
 
