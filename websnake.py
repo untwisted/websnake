@@ -54,8 +54,9 @@ def on_connect(spin, request):
     AccUntil(spin)
     TransferHandle(spin)
 
-    # It has to be mapped here otherwise HttpTransferHandle.HTTP_RESPONSE
-    # will be spawned and response.fd cursor will be at the end of the file.
+    # It has to be mapped here otherwise 
+    # TransferHandle.DONE will be spawned and response.
+    # fd cursor will be at the end of the file.
     xmap(spin, TmpFile.DONE, 
     lambda spin, fd, data: fd.seek(0))
 
@@ -80,12 +81,15 @@ def build_headers(headers):
     data = data + '\r\n'
     return data
 
-def get(addr, path, args={},  headers={}, version='HTTP/1.1', ssl=False, auth=()):
+def get(addr, path, args={},  headers={}, version='HTTP/1.1', auth=()):
+
+    """
+    It does an http/https request.
+    """
+
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
-
-    default = {
-    'user-agent':"Untwisted-requests/1.0.0", 
+    default = {'user-agent':"Untwisted-requests/1.0.0", 
     'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'connection':'close',
     'host': url.hostname}
@@ -98,17 +102,17 @@ def get(addr, path, args={},  headers={}, version='HTTP/1.1', ssl=False, auth=()
     data = data + build_headers(default)
     port = url.port if url.port else getservbyname(url.scheme)
 
-    return create_con_ssl(url.hostname, port, data) if ssl else \
-        create_con(url.hostname, port, data)
+    return create_con_ssl(url.hostname, port, data) \
+    if url.scheme == 'https' else create_con(url.hostname, port, data)
 
-def post(addr, path, payload='', version='HTTP/1.1', headers={}, ssl=False, auth=()):
+def post(addr, path, payload='', version='HTTP/1.1', headers={},  auth=()):
+
     """
     """
+
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
-
-    default = {
-    'user-agent':"Untwisted-requests/1.0.0", 
+    default = {'user-agent':"Untwisted-requests/1.0.0", 
     'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'connection':'close',
     'host': url.hostname,
@@ -123,13 +127,14 @@ def post(addr, path, payload='', version='HTTP/1.1', headers={}, ssl=False, auth
     request = request + build_headers(default) + payload
     port    = url.port if url.port else getservbyname(url.scheme)
 
-    return create_con_ssl(url.hostname, port, request) if ssl else \
-        create_con(url.hostname, port, request)
+    return create_con_ssl(url.hostname, port, request) \
+    if url.scheme == 'https' else create_con(url.hostname, port, request)
 
 def build_auth(username, password):
     from base64 import encodestring
     base = encodestring('%s:%s' % (username, password))
     base = base.replace('\n', '')
     return "Basic %s" % base
+
 
 

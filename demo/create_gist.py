@@ -1,3 +1,11 @@
+"""
+Overview
+========
+
+Create an anonymous gist on github.
+
+"""
+
 from websnake import post, ResponseHandle
 from untwisted.network import xmap, core
 import json
@@ -13,20 +21,11 @@ def create():
 
     con = post('https://api.github.com',  
     '/gists', payload=json.dumps(payload), 
-    headers={'content-type': 'application/json'}, ssl=True)
+    headers={'content-type': 'application/json'})
 
     xmap(con, ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
-
-
-
-
-
-
-
-
-
 

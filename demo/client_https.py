@@ -1,3 +1,11 @@
+"""
+Overview
+========
+
+Retrieve user data from github.
+
+"""
+
 from websnake import get, ResponseHandle
 from untwisted.network import xmap, core
 
@@ -10,15 +18,9 @@ def on_done(con, response):
 
 if __name__ == '__main__':
     con = get('https://api.github.com', '/user', 
-    ssl=True, auth=('iogf', 'godhelpsme'))
+    auth=('iogf', 'godhelpsme'))
 
     xmap(con, ResponseHandle.DONE, on_done)
     core.gear.mainloop()
-
-
-
-
-
-
 
 
