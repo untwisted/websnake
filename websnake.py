@@ -73,6 +73,13 @@ def create_con(addr, port, data):
     xmap(con, CONNECT,  on_connect, data)
     return con
 
+def build_headers(headers):
+    data = ''
+    for key, value in headers.iteritems():
+        data = data + '%s: %s\r\n' % (key, value)
+    data = data + '\r\n'
+    return data
+
 def get(addr, path, args={},  headers={}, version='HTTP/1.1', ssl=False, auth=()):
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
@@ -87,11 +94,8 @@ def get(addr, path, args={},  headers={}, version='HTTP/1.1', ssl=False, auth=()
     args = '?%s' % urlencode(args) if args else ''
 
     if auth: default['authorization'] = build_auth(*auth)
-    data  = 'GET %s%s %s\r\n' % (path, args, version)
-
-    for key, value in default.iteritems():
-        data = data + '%s: %s\r\n' % (key, value)
-    data = data + '\r\n'
+    data = 'GET %s%s %s\r\n' % (path, args, version)
+    data = data + build_headers(default)
     port = url.port if url.port else getservbyname(url.scheme)
 
     return create_con_ssl(url.hostname, port, data) if ssl else \
@@ -116,11 +120,9 @@ def post(addr, path, payload='', version='HTTP/1.1', headers={}, ssl=False, auth
     request  = 'POST %s %s\r\n' % (path, version)
     if auth: default['authorization'] = build_auth(*auth)
 
-    for key, value in default.iteritems():
-        request = request + '%s: %s\r\n' % (key, value)
-    request = request + '\r\n' + payload
+    request = request + build_headers(default) + payload
+    port    = url.port if url.port else getservbyname(url.scheme)
 
-    port = url.port if url.port else getservbyname(url.scheme)
     return create_con_ssl(url.hostname, port, request) if ssl else \
         create_con(url.hostname, port, request)
 
