@@ -23,19 +23,32 @@ class TransferHandle(object):
         spawn(spin, TransferHandle.DONE, Response(response), data))
 
 class ResponseHandle(object):
-    DONE = get_event()
+    DONE     = get_event()
+    MAX_SIZE = 1024 * 1024
 
     def __init__(self, spin):
         self.response = None
         xmap(spin, TransferHandle.DONE, self.process)
-        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: spawn(spin, 
-        ResponseHandle.DONE, self.response))
 
     def process(self, spin, response, data):
         self.response = response
 
         TmpFile(spin, data, int(response.headers.get(
-        'content-length', '0')), response.fd)
+        'content-length', self.MAX_SIZE)), response.fd)
+
+        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: spawn(spin, 
+        ResponseHandle.DONE, self.response))
+
+        xmap(spin, TmpFile.DONE, 
+        lambda spin, fd, data: fd.seek(0))
+
+        # Reset the fd in case of the socket getting closed
+        # and there is no content-length header.
+        xmap(spin, CLOSE,  lambda spin, err: 
+        self.response.fd.seek(0))
+
+        xmap(spin, CLOSE,  lambda spin, err: 
+        spawn(spin,  ResponseHandle.DONE, self.response))
 
 class Response(object):
     def __init__(self, data):
@@ -53,12 +66,6 @@ class HttpCode(object):
 def on_connect(spin, request):
     AccUntil(spin)
     TransferHandle(spin)
-
-    # It has to be mapped here otherwise 
-    # TransferHandle.DONE will be spawned and response.
-    # fd cursor will be at the end of the file.
-    xmap(spin, TmpFile.DONE, 
-    lambda spin, fd, data: fd.seek(0))
 
     ResponseHandle(spin)
     HttpCode(spin)
@@ -135,6 +142,7 @@ def build_auth(username, password):
     base = encodestring('%s:%s' % (username, password))
     base = base.replace('\n', '')
     return "Basic %s" % base
+
 
 
 
