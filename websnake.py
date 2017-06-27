@@ -8,6 +8,7 @@ from urllib import urlencode
 from tempfile import TemporaryFile 
 from urlparse import urlparse
 from socket import getservbyname
+import sys
 
 class Headers(dict):
     def __init__(self, data):
@@ -36,11 +37,15 @@ class ResponseHandle(object):
         TmpFile(spin, data, int(response.headers.get(
         'content-length', self.MAX_SIZE)), response.fd)
 
-        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: spawn(spin, 
-        ResponseHandle.DONE, self.response))
+        # Make sure CLOSE will not be spawned and ResponseHandle.DONE
+        # be spawned twice.
+        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: lose(spin))
 
         xmap(spin, TmpFile.DONE, 
         lambda spin, fd, data: fd.seek(0))
+
+        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: spawn(spin, 
+        ResponseHandle.DONE, self.response))
 
         # Reset the fd in case of the socket getting closed
         # and there is no content-length header.
@@ -69,6 +74,7 @@ def on_connect(spin, request):
 
     ResponseHandle(spin)
     HttpCode(spin)
+
     spin.dump(request)
 
 def create_con_ssl(addr, port, data):
