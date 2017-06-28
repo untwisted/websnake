@@ -4,7 +4,7 @@ Asynchronous web requests in python.
 
 It is possible to fire multiple http/https requests asynchronously with websnake. 
 
-**client_https.py**
+### Basic GET Request
 
 ~~~python
 """
@@ -26,7 +26,7 @@ def on_done(con, response):
     print response.fd.read()
 
 if __name__ == '__main__':
-    con = get('https://api.github.com', '/user', 
+    con = get('https://api.github.com/user', 
     auth=('iogf', 'godhelpsme'))
 
     xmap(con, ResponseHandle.DONE, on_done)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
 ~~~
 
-**create_gist.py**
+### Basic POST Request 
 
 ~~~python
 
@@ -59,8 +59,8 @@ def create():
     "public": "true", "files": {
     "file1.txt": {"content": "String file contents"}}}
 
-    con = post('https://api.github.com',  
-    '/gists', payload=json.dumps(payload), 
+    con = post('https://api.github.com/gists',      
+    payload=json.dumps(payload), 
     headers={'content-type': 'application/json'})
 
     xmap(con, ResponseHandle.DONE, on_done)
@@ -83,4 +83,5 @@ pip2 install websnake
 
 
 [Wiki](https://github.com/iogf/websnake/wiki)
+
 
