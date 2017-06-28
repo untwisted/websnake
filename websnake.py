@@ -44,16 +44,21 @@ class ResponseHandle(object):
         xmap(spin, TmpFile.DONE, 
         lambda spin, fd, data: fd.seek(0))
 
-        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: spawn(spin, 
-        ResponseHandle.DONE, self.response))
+        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: 
+        spawn(spin, ResponseHandle.DONE, self.response))
 
         # Reset the fd in case of the socket getting closed
         # and there is no content-length header.
         xmap(spin, CLOSE,  lambda spin, err: 
         self.response.fd.seek(0))
 
-        xmap(spin, CLOSE,  lambda spin, err: 
-        spawn(spin,  ResponseHandle.DONE, self.response))
+        # The fact of destroying the Spin instance when on TmpFile.DONE
+        # doesnt warrant the CLOSE event will not be fired.
+        # So it spawns ResponseHandle.DONE only if there is 
+        # a content-length header.
+        if not 'content-length' in response.headers:
+            xmap(spin, CLOSE,  lambda spin, err: 
+                spawn(spin,  ResponseHandle.DONE, self.response))
 
 class Response(object):
     def __init__(self, data):
