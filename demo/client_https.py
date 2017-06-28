@@ -17,10 +17,11 @@ def on_done(con, response):
     print response.fd.read()
 
 if __name__ == '__main__':
-    con = get('https://api.github.com', '/user', 
+    con = get('https://api.github.com/user', 
     auth=('iogf', 'godhelpsme'))
 
     xmap(con, ResponseHandle.DONE, on_done)
     core.gear.mainloop()
+
 
 

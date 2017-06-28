@@ -9,8 +9,10 @@ def on_done(con, response):
     print response.fd.read()
 
 if __name__ == '__main__':
-    xmap(get('http://codepad.org', '/'), 
+    xmap(get('http://codepad.org/'), 
     ResponseHandle.DONE, on_done)
 
     core.gear.mainloop()
+
+
 

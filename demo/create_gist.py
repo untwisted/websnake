@@ -19,8 +19,8 @@ def create():
     "public": "true", "files": {
     "file1.txt": {"content": "String file contents"}}}
 
-    con = post('https://api.github.com',  
-    '/gists', payload=json.dumps(payload), 
+    con = post('https://api.github.com/gists',      
+    payload=json.dumps(payload), 
     headers={'content-type': 'application/json'})
 
     xmap(con, ResponseHandle.DONE, on_done)
@@ -28,4 +28,5 @@ def create():
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
+
 

@@ -29,7 +29,7 @@ def create_post(filename, run=True, type='Plain Text'):
     'submit':'Submit',
     'run': run}
     
-    con = post('http://codepad.org', '/', payload=urlencode(payload))
+    con = post('http://codepad.org/', payload=urlencode(payload))
     xmap(con, ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
@@ -42,5 +42,6 @@ if __name__ == '__main__':
 
     create_post(args.filename, args.run, args.type)
     core.gear.mainloop()
+
 
 
