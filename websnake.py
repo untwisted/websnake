@@ -32,7 +32,6 @@ class ResponseHandle(object):
         xmap(spin, TransferHandle.DONE, self.process)
 
     def process(self, spin, response, data):
-        # print response.headers
         self.response = response
 
         # These handles have to be mapped here
