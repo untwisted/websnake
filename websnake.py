@@ -117,7 +117,9 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
     args = '?%s' % urlencode(args) if args else ''
 
     if auth: default['authorization'] = build_auth(*auth)
-    data = 'GET %s%s %s\r\n' % (url.path, args, version)
+
+    data = 'GET %s%s %s\r\n' % (url.path + ('?' + url.query if \
+    url.query else ''), args, version)
     data = data + build_headers(default)
     port = url.port if url.port else getservbyname(url.scheme)
 
@@ -140,7 +142,9 @@ def post(addr, payload='', version='HTTP/1.1', headers={},  auth=()):
 
     default.update(headers)
 
-    request  = 'POST %s %s\r\n' % (url.path, version)
+    request  = 'POST %s %s\r\n' % (url.path + ('?' + url.query if \
+    url.query else ''), version)
+
     if auth: default['authorization'] = build_auth(*auth)
 
     request = request + build_headers(default) + payload
@@ -154,6 +158,7 @@ def build_auth(username, password):
     base = encodestring('%s:%s' % (username, password))
     base = base.replace('\n', '')
     return "Basic %s" % base
+
 
 
 
