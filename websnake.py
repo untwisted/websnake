@@ -32,13 +32,12 @@ class ResponseHandle(object):
         xmap(spin, TransferHandle.DONE, self.process)
 
     def process(self, spin, response, data):
+        # print response.headers
         self.response = response
 
-        TmpFile(spin, data, int(response.headers.get(
-        'content-length', self.MAX_SIZE)), response.fd)
-
-        # Make sure CLOSE will not be spawned and ResponseHandle.DONE
-        # be spawned twice.
+        # These handles have to be mapped here
+        # otherwise it may occur of TmpFile spawning
+        # done in the first cycle.
         xmap(spin, TmpFile.DONE,  lambda spin, fd, data: lose(spin))
 
         xmap(spin, TmpFile.DONE, 
@@ -46,6 +45,9 @@ class ResponseHandle(object):
 
         xmap(spin, TmpFile.DONE,  lambda spin, fd, data: 
         spawn(spin, ResponseHandle.DONE, self.response))
+
+        TmpFile(spin, data, int(response.headers.get(
+        'content-length', self.MAX_SIZE)), response.fd)
 
         # Reset the fd in case of the socket getting closed
         # and there is no content-length header.
@@ -153,6 +155,7 @@ def build_auth(username, password):
     base = encodestring('%s:%s' % (username, password))
     base = base.replace('\n', '')
     return "Basic %s" % base
+
 
 
 
