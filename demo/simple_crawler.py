@@ -1,3 +1,7 @@
+"""
+A simple crawler.
+"""
+
 from websnake import get, ResponseHandle
 from untwisted.network import xmap, core
 import sys
@@ -15,28 +19,19 @@ def create_connection(addr):
      AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36', 
     'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
 
-    con = get(addr, headers=headers)
-    xmap(con, '200', on_done)
-    return con
-
-if __name__ == '__main__':
     redirect = lambda con, response: \
     create_connection(response.headers['location'])
 
-    con = create_connection(sys.argv[1])
+    con = get(addr, headers=headers)
+    xmap(con, '200', on_done)
     xmap(con, '302', redirect)
     xmap(con, '301', redirect)
 
+    return con
+
+if __name__ == '__main__':
+
+    con = create_connection(sys.argv[1])
+
     core.gear.mainloop()
-
-
-
-
-
-
-
-
-
-
-
 
