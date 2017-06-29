@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 setup(name="websnake",
-      version="1.0.1",
+      version="1.1.0",
       py_modules=['websnake'],
       author="Iury O. G. Figueiredo",
       author_email="ioliveira@id.uff.br",
@@ -11,6 +11,7 @@ setup(name="websnake",
       keywords=['web server', 'requests', 'http', 'https', 'web framework', 'untwisted'],
       classifiers=[],
       description="Asynchronous web requests in python.",)
+
 
 
 
