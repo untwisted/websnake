@@ -7,9 +7,9 @@ def create_connection(addr):
     # Get on_done handle only when '200' HTTP response happens.
     # The request.con is merely a Spin instance.
     # See: https://github.com/iogf/untwisted
-    request.con.add_map('200', on_done)
+    request.add_map('200', on_done)
 
-def on_done(con, response):
+def on_done(request, con, response):
     # The response details.
     print response.headers
 
@@ -32,6 +32,7 @@ if __name__ == '__main__':
     for ind in urls:
         create_connection(ind)
     core.gear.mainloop()
+
 
 
 

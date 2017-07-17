@@ -3,6 +3,7 @@ Client, Stdin, Stdout, lose, create_client
 from untwisted.iossl import SSL_CONNECT, create_client_ssl
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.network import Spin, xmap, spawn, SSL
+from untwisted.dispatcher import Dispatcher
 from untwisted.event import get_event
 from untwisted import core
 from urllib import urlencode
@@ -101,8 +102,7 @@ def build_headers(headers):
     data = data + '\r\n'
     return data
 
-
-class Context(object):
+class Context(Dispatcher):
     def __init__(self, method, addr, *args, **kwargs):
         self.addr   = addr
         self.args   = args
@@ -110,10 +110,8 @@ class Context(object):
         self.method = method
         self.con    = method(addr, *self.args, **self.kwargs)
         self.con.add_map(ResponseHandle.DONE, self.redirect)
-        self.set_events('200', '301', '302')
-
-    def set_events(self, *args):
-        self.events = args
+        super(Context, self).__init__()
+        self.con.add_handle(self.proxy)
 
     def redirect(self, con, response):
         location = response.headers.get('location')
@@ -122,9 +120,10 @@ class Context(object):
     def switch(self, location):
         con = self.method(location, *self.args, **self.kwargs)
         con.add_map(ResponseHandle.DONE, self.redirect)
+        con.add_handle(self.proxy)
 
-        for ind in self.events:
-            con.base[ind] = self.con.base.get(ind, [])
+    def proxy(self, con, event, args):
+        self.drive(event, con, *args)
 
 class ContextGet(Context):
     def __init__(self, addr, args={},  
@@ -138,7 +137,7 @@ class ContextPost(Context):
         version='HTTP/1.1', headers={},  auth=()):
 
         super(ContextPost, self).__init__(post, addr, 
-            payload,  headers, version, auth)
+            payload,  version, headers, auth)
 
 def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
 
