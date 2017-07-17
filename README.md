@@ -16,7 +16,7 @@ It is possible to fire multiple http/https requests asynchronously with websnake
 
 - **Non-blocking I/O**
 
-In Websnake HTTP response's code turn into events, in this way it is possible to keep track of what is going
+In Websnake HTTP response's codes turn into events, in this way it is possible to keep track of what is going
 on with your request in an simple manner. The fact of being capable of mapping a handle to a specific
 HTTP response it makes applications on top of Websnake more modular.
 
