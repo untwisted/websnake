@@ -4,6 +4,7 @@ from untwisted.iossl import SSL_CONNECT, create_client_ssl
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.network import Spin, xmap, spawn, SSL
 from untwisted.event import get_event
+from untwisted import core
 from urllib import urlencode
 from tempfile import TemporaryFile 
 from urlparse import urlparse
@@ -100,6 +101,45 @@ def build_headers(headers):
     data = data + '\r\n'
     return data
 
+
+class Context(object):
+    def __init__(self, method, addr, *args, **kwargs):
+        self.addr   = addr
+        self.args   = args
+        self.kwargs = kwargs
+        self.method = method
+        self.con    = method(addr, *self.args, **self.kwargs)
+        self.con.add_map(ResponseHandle.DONE, self.redirect)
+        self.set_events('200', '301', '302')
+
+    def set_events(self, *args):
+        self.events = args
+
+    def redirect(self, con, response):
+        location = response.headers.get('location')
+        if location: self.switch(location)
+
+    def switch(self, location):
+        con = self.method(location, *self.args, **self.kwargs)
+        con.add_map(ResponseHandle.DONE, self.redirect)
+
+        for ind in self.events:
+            con.base[ind] = self.con.base.get(ind, [])
+
+class ContextGet(Context):
+    def __init__(self, addr, args={},  
+        headers={}, version='HTTP/1.1', auth=()):
+
+        super(ContextGet, self).__init__(get, addr, 
+            args,  headers, version, auth)
+
+class ContextPost(Context):
+    def __init__(self, addr, payload='', 
+        version='HTTP/1.1', headers={},  auth=()):
+
+        super(ContextPost, self).__init__(post, addr, 
+            payload,  headers, version, auth)
+
 def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
 
     """
@@ -108,7 +148,7 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
 
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
-    default = {'user-agent':"Untwisted-requests/1.0.0", 
+    default = {'user-agent':"Websnake/1.0.0", 
     'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'connection':'close',
     'host': url.hostname}
@@ -158,6 +198,7 @@ def build_auth(username, password):
     base = encodestring('%s:%s' % (username, password))
     base = base.replace('\n', '')
     return "Basic %s" % base
+
 
 
 
