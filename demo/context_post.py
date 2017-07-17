@@ -22,11 +22,13 @@ def create():
     payload=json.dumps(payload), 
     headers={'content-type': 'application/json'})
 
+    # Regardless of the status code it calls on_done.
     request.add_map(ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
+
 
 
 

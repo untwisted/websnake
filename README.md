@@ -1,67 +1,77 @@
 # Websnake
 
-Asynchronous web requests in python.
+Asynchronous http/https requests in python (for humans).
 
 It is possible to fire multiple http/https requests asynchronously with websnake. 
 
+# Features
+
+- **Http/Https**
+
+- **Easy to play :P**
+
+- **GET/POST requests**
+
+- **Basic AUTH support**
+
+- **Non-blocking I/O**
+
+In Websnake HTTP response's code turn into events, in this way it is possible to keep track of what is going
+on with your request in an simple manner. The fact of being capable of mapping a handle to a specific
+HTTP response it makes applications on top of Websnake more modular.
+
 ### Basic GET Request
 
+The following example just fire three requests and wait for the response to be printed.
+
 ~~~python
-"""
-A simple crawler.
-"""
-
-from websnake import get, ResponseHandle
-from untwisted.network import xmap, core
-import sys
-
-def on_done(con, response):
-    print response.headers
-    print response.code
-    print response.version
-    print response.reason 
-    print response.fd.read()
+from websnake import ContextGet, core
 
 def create_connection(addr):
-    headers = {
-    'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) \
-     AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36', 
-    'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7'}
+    # The ContextGet automatically handles redirects.
+    request = ContextGet(addr)
+    
+    # Get on_done handle only when '200' HTTP response happens.
+    # The request.con is merely a Spin instance.
+    # See: https://github.com/iogf/untwisted
+    request.add_map('200', on_done)
 
-    redirect = lambda con, response: \
-    create_connection(response.headers['location'])
+def on_done(request, con, response):
+    # The response details.
+    print response.headers
 
-    con = get(addr, headers=headers)
-    xmap(con, '200', on_done)
-    xmap(con, '302', redirect)
-    xmap(con, '301', redirect)
+    # The response code in this case '200'.
+    print response.code
 
-    return con
+    # The protocol version.
+    print response.version
+
+    # The text reason.
+    print response.reason 
+    
+    # The response body.
+    print response.fd.read()
 
 if __name__ == '__main__':
+    urls = ('https://www.google.com.br/', 
+    'https://www.github.com/', 'https://news.ycombinator.com/')
 
-    con = create_connection(sys.argv[1])
-
+    for ind in urls:
+        create_connection(ind)
     core.gear.mainloop()
+
 ~~~
 
 ### Basic POST Request
 
+The example below creates a simple gist on github.
+
 ~~~python
 
-"""
-Overview
-========
-
-Create an anonymous gist on github.
-
-"""
-
-from websnake import post, ResponseHandle
-from untwisted.network import xmap, core
+from websnake import ContextPost, ResponseHandle, core
 import json
 
-def on_done(con, response):
+def on_done(request, con, response):
     print response.fd.read()
 
 def create():
@@ -70,16 +80,16 @@ def create():
     "public": "true", "files": {
     "file1.txt": {"content": "String file contents"}}}
 
-    con = post('https://api.github.com/gists',      
+    request = ContextPost('https://api.github.com/gists',      
     payload=json.dumps(payload), 
     headers={'content-type': 'application/json'})
 
-    xmap(con, ResponseHandle.DONE, on_done)
+    # Regardless of the status code it calls on_done.
+    request.add_map(ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
-
 
 ~~~
 
@@ -94,6 +104,7 @@ pip2 install websnake
 
 
 [Wiki](https://github.com/iogf/websnake/wiki)
+
 
 
 
