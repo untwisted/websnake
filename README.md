@@ -100,10 +100,8 @@ pip2 install -r requirements.txt
 pip2 install websnake
 ~~~
 
-# Documentation
-
-
-[Wiki](https://github.com/iogf/websnake/wiki)
+**Note:** Websnake is built on top of [Untwisted](https://github.com/iogf/untwisted) It is necessary a bit
+of comprehension about how untwisted works in order to better use all websnake's features.
 
 
 
