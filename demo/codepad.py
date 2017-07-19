@@ -9,13 +9,14 @@ Example:
     python2 codepad.py -f file.py
 
 """
+from __future__ import print_function
 
 from websnake import ResponseHandle, post, urlencode
 from untwisted.network import Spin, xmap, core, die
 import argparse
 
 def on_done(spin, response):
-    print 'URL:%s' % response.headers['location']
+    print('URL:%s' % response.headers['location'])
     die()
 
 def create_post(filename, run=True, type='Plain Text'):
@@ -24,8 +25,7 @@ def create_post(filename, run=True, type='Plain Text'):
     fd.close()
 
     payload = {'code':code,
-    'lang':' '.join(map(lambda ind: 
-    ind.capitalize(), type.split(' '))),
+    'lang':' '.join([ind.capitalize() for ind in type.split(' ')]),
     'submit':'Submit',
     'run': run}
     

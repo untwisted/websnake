@@ -56,6 +56,21 @@ cd ~/projects/websnake-code
 python2 setup.py sdist register upload
 rm -fr dist
 ##############################################################################
+# futurize code.
+
+cd ~/projects/untwisted-code
+futurize --stage1 -w **/*.py
+
+# Check changes.
+futurize --stage2 **/*.py
+
+# Apply the changes.
+futurize --stage2 -w **/*.py
+
+# Clear stuff.
+find . -name "*.bak" -exec rm -f {} \;
+##############################################################################
+
 
 
 

@@ -6,11 +6,17 @@ from untwisted.network import Spin, xmap, spawn, SSL
 from untwisted.dispatcher import Dispatcher
 from untwisted.event import get_event
 from untwisted import core
-from urllib import urlencode
 from tempfile import TemporaryFile 
-from urlparse import urlparse
 from socket import getservbyname
+from future.utils import iteritems
 import sys
+
+
+try:
+    from urllib.parse import urlencode, urlparse
+except Exception as e:
+    from urlparse import urlparse
+    from urllib import urlencode
 
 class Headers(dict):
     def __init__(self, data):
@@ -48,7 +54,7 @@ class ResponseHandle(object):
         spawn(spin, ResponseHandle.DONE, self.response))
 
         TmpFile(spin, data, int(response.headers.get(
-        'content-length', self.MAX_SIZE)), response.fd)
+        b'content-length', self.MAX_SIZE)), response.fd)
 
         # Reset the fd in case of the socket getting closed
         # and there is no content-length header.
@@ -59,17 +65,18 @@ class ResponseHandle(object):
         # doesnt warrant the CLOSE event will not be fired.
         # So it spawns ResponseHandle.DONE only if there is 
         # a content-length header.
-        if not 'content-length' in response.headers:
+        if not b'content-length' in response.headers:
             xmap(spin, CLOSE,  lambda spin, err: 
                 spawn(spin,  ResponseHandle.DONE, self.response))
 
 class Response(object):
     def __init__(self, data):
+        data                                 = data.decode('utf8')
         data                                 = data.split('\r\n')
         response                             = data.pop(0)
         self.version, self.code, self.reason = response.split(' ', 2)
         self.headers                         = Headers(data)
-        self.fd                              = TemporaryFile('a+')
+        self.fd                              = TemporaryFile('w+b')
 
 class HttpCode(object):
     def __init__(self, spin):
@@ -97,7 +104,7 @@ def create_con(addr, port, data):
 
 def build_headers(headers):
     data = ''
-    for key, value in headers.iteritems():
+    for key, value in iteritems(headers):
         data = data + '%s: %s\r\n' % (key, value)
     data = data + '\r\n'
     return data
@@ -147,8 +154,9 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
 
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
-    default = {'user-agent':"Websnake/1.0.0", 
-    'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+    default = {
+    'user-agent':'Websnake/1.0.0', 
+    'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'connection':'close',
     'host': url.hostname}
 
@@ -161,11 +169,12 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
     url.query else ''), args, version)
     data = data + build_headers(default)
     port = url.port if url.port else getservbyname(url.scheme)
+    data = data.encode('utf8')
 
     return create_con_ssl(url.hostname, port, data) \
     if url.scheme == 'https' else create_con(url.hostname, port, data)
 
-def post(addr, payload='', version='HTTP/1.1', headers={},  auth=()):
+def post(addr, payload=b'', version='HTTP/1.1', headers={},  auth=()):
 
     """
     """
@@ -173,7 +182,7 @@ def post(addr, payload='', version='HTTP/1.1', headers={},  auth=()):
     addr    = addr.strip().rstrip()
     url     = urlparse(addr)
     default = {'user-agent':"Untwisted-requests/1.0.0", 
-    'accept-charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+    'accept-charset':b'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'connection':'close',
     'host': url.hostname,
     'content-type': 'application/x-www-form-urlencoded',
@@ -186,7 +195,7 @@ def post(addr, payload='', version='HTTP/1.1', headers={},  auth=()):
 
     if auth: default['authorization'] = build_auth(*auth)
 
-    request = request + build_headers(default) + payload
+    request = (request + build_headers(default)).encode('utf8') + payload
     port    = url.port if url.port else getservbyname(url.scheme)
 
     return create_con_ssl(url.hostname, port, request) \
@@ -194,9 +203,15 @@ def post(addr, payload='', version='HTTP/1.1', headers={},  auth=()):
 
 def build_auth(username, password):
     from base64 import encodestring
-    base = encodestring('%s:%s' % (username, password))
-    base = base.replace('\n', '')
+    
+    # The headers will be encoded as utf8.
+    username = username.encode('utf8')
+    password = password.encode('utf8')
+
+    base = encodestring(b'%s:%s' % (username, password))
+    base = base.replace(b'\n', b'').decode('utf8')
     return "Basic %s" % base
+
 
 
 

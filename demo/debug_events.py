@@ -1,47 +1,48 @@
+from __future__ import print_function
 from websnake import get, ResponseHandle, TransferHandle
 from untwisted.network import xmap, core
 from untwisted.event import CONNECT_ERR, CONNECT, WRITE, CLOSE,  SSL_CONNECT, DUMPED, SSL_SEND_ERR, SSL_CERTIFICATE_ERR, SSL_CONNECT_ERR
 import sys
 
 def on_done(con, response):
-    print 'on_done', response.code
+    print('on_done', response.code)
 
 def on_response_handle_done(con, response):
-    print response.code
+    print(response.code)
 
 def on_transfer_handle_done(con, response, data):
-    print 'on transfer response', response.headers
+    print('on transfer response', response.headers)
 
 def on_ssl_connect_err(*args):
-    print 'on ssl connect err'
+    print('on ssl connect err')
 
 def on_dumped(*args):
-    print 'on dumped request'
+    print('on dumped request')
 
 def on_send_err_ssl(*args):
-    print 'on send err ssl'
+    print('on send err ssl')
 
 def on_ssl_certificate_err(*args):
-    print 'on ssl certificate err'
+    print('on ssl certificate err')
 
 def on_close(*args):
-    print 'on close'
+    print('on close')
 
 def on_connect(*args):
-    print 'connected'
+    print('connected')
 
 def on_ssl_connect(*args):
-    print 'on ssl connect'
+    print('on ssl connect')
 
 def on_ssl_connect_err(*args):
-    print 'connect err'
+    print('connect err')
 
 def on_write(*args):
-    print 'on_write'
+    print('on_write')
 
 def on_redirect(con, response):
     con = create_connection(response.headers['location'])
-    print 'on redirect', response.code, response.headers
+    print('on redirect', response.code, response.headers)
 
 def create_connection(addr):
     headers = {

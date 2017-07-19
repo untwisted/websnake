@@ -1,3 +1,4 @@
+from __future__ import print_function
 from websnake import ContextGet, core
 
 def create_connection(addr):
@@ -11,19 +12,19 @@ def create_connection(addr):
 
 def on_done(request, con, response):
     # The response details.
-    print response.headers
+    print(response.headers)
 
     # The response code in this case '200'.
-    print response.code
+    print(response.code)
 
     # The protocol version.
-    print response.version
+    print(response.version)
 
     # The text reason.
-    print response.reason 
+    print(response.reason) 
     
     # The response body.
-    print response.fd.read()
+    print(response.fd.read())
 
 if __name__ == '__main__':
     urls = ('https://www.google.com.br/', 

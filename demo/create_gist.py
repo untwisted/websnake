@@ -5,13 +5,14 @@ Overview
 Create an anonymous gist on github.
 
 """
+from __future__ import print_function
 
 from websnake import post, ResponseHandle
 from untwisted.network import xmap, core
 import json
 
 def on_done(con, response):
-    print response.fd.read()
+    print(response.fd.read())
 
 def create():
     payload = {
@@ -20,7 +21,7 @@ def create():
     "file1.txt": {"content": "String file contents"}}}
 
     con = post('https://api.github.com/gists',      
-    payload=json.dumps(payload), 
+    payload=json.dumps(payload).encode('utf8'), 
     headers={'content-type': 'application/json'})
 
     xmap(con, ResponseHandle.DONE, on_done)
@@ -28,5 +29,6 @@ def create():
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
+
 
 

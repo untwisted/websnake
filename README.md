@@ -95,13 +95,16 @@ if __name__ == '__main__':
 
 # install
 
+**Note:** Websnake should work with both python2 and python3.
+
 ~~~
-pip2 install -r requirements.txt
-pip2 install websnake
+pip install -r requirements.txt
+pip install websnake
 ~~~
 
 **Note:** Websnake is built on top of [Untwisted](https://github.com/iogf/untwisted) It is necessary a bit
 of comprehension about how untwisted works in order to better use all websnake's features.
+
 
 
 
