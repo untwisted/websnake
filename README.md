@@ -25,6 +25,7 @@ HTTP response it makes applications on top of Websnake more modular.
 The following example just fire three requests and wait for the response to be printed.
 
 ~~~python
+from __future__ import print_function
 from websnake import ContextGet, core
 
 def create_connection(addr):
@@ -38,19 +39,19 @@ def create_connection(addr):
 
 def on_done(request, con, response):
     # The response details.
-    print response.headers
+    print(response.headers)
 
     # The response code in this case '200'.
-    print response.code
+    print(response.code)
 
     # The protocol version.
-    print response.version
+    print(response.version)
 
     # The text reason.
-    print response.reason 
+    print(response.reason) 
     
     # The response body.
-    print response.fd.read()
+    print(response.fd.read())
 
 if __name__ == '__main__':
     urls = ('https://www.google.com.br/', 
@@ -59,7 +60,6 @@ if __name__ == '__main__':
     for ind in urls:
         create_connection(ind)
     core.gear.mainloop()
-
 ~~~
 
 ### Basic POST Request
@@ -67,12 +67,13 @@ if __name__ == '__main__':
 The example below creates a simple gist on github.
 
 ~~~python
+from __future__ import print_function
 
 from websnake import ContextPost, ResponseHandle, core
 import json
 
 def on_done(request, con, response):
-    print response.fd.read()
+    print(response.fd.read())
 
 def create():
     payload = {
@@ -81,7 +82,7 @@ def create():
     "file1.txt": {"content": "String file contents"}}}
 
     request = ContextPost('https://api.github.com/gists',      
-    payload=json.dumps(payload), 
+    payload=json.dumps(payload).encode('utf8'), 
     headers={'content-type': 'application/json'})
 
     # Regardless of the status code it calls on_done.
@@ -90,7 +91,6 @@ def create():
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
-
 ~~~
 
 # install
@@ -104,6 +104,7 @@ pip install websnake
 
 **Note:** Websnake is built on top of [Untwisted](https://github.com/iogf/untwisted) It is necessary a bit
 of comprehension about how untwisted works in order to better use all websnake's features.
+
 
 
 
