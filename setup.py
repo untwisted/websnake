@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python
 
 from distutils.core import setup
 setup(name="websnake",
@@ -11,6 +11,7 @@ setup(name="websnake",
       keywords=['web server', 'requests', 'http', 'https', 'web framework', 'untwisted'],
       classifiers=[],
       description="Asynchronous web requests in python.",)
+
 
 
 
