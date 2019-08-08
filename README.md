@@ -25,7 +25,6 @@ HTTP response it makes applications on top of Websnake more modular.
 The following example just fire three requests and wait for the response to be printed.
 
 ~~~python
-from __future__ import print_function
 from websnake import ContextGet, core
 
 def create_connection(addr):
@@ -67,8 +66,6 @@ if __name__ == '__main__':
 The example below creates a simple gist on github.
 
 ~~~python
-from __future__ import print_function
-
 from websnake import ContextPost, ResponseHandle, core
 import json
 
@@ -95,7 +92,7 @@ if __name__ == '__main__':
 
 # install
 
-**Note:** Websnake should work with both python2 and python3.
+**Note:** Websnake should work with python3 only.
 
 ~~~
 pip install -r requirements.txt
@@ -104,6 +101,7 @@ pip install websnake
 
 **Note:** Websnake is built on top of [Untwisted](https://github.com/iogf/untwisted) It is necessary a bit
 of comprehension about how untwisted works in order to better use all websnake's features.
+
 
 
 
