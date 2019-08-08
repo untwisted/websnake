@@ -1,5 +1,6 @@
 from untwisted.iostd import LOAD, CLOSE, CONNECT, CONNECT_ERR, \
 Client, Stdin, Stdout, lose, create_client
+from urllib.parse import urlencode, urlparse
 from untwisted.iossl import SSL_CONNECT, create_client_ssl
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.network import Spin, xmap, spawn, SSL
@@ -8,15 +9,8 @@ from untwisted.event import get_event
 from untwisted import core
 from tempfile import TemporaryFile 
 from socket import getservbyname
-from future.utils import iteritems
 import sys
 
-
-try:
-    from urllib.parse import urlencode, urlparse
-except Exception as e:
-    from urlparse import urlparse
-    from urllib import urlencode
 
 class Headers(dict):
     def __init__(self, data):
@@ -104,7 +98,7 @@ def create_con(addr, port, data):
 
 def build_headers(headers):
     data = ''
-    for key, value in iteritems(headers):
+    for key, value in headers.items():
         data = data + '%s: %s\r\n' % (key, value)
     data = data + '\r\n'
     return data
@@ -169,7 +163,7 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
     url.query else ''), args, version)
     data = data + build_headers(default)
     port = url.port if url.port else getservbyname(url.scheme)
-    data = data.encode('utf8')
+    data = data.encode('ascii')
 
     return create_con_ssl(url.hostname, port, data) \
     if url.scheme == 'https' else create_con(url.hostname, port, data)
@@ -195,7 +189,7 @@ def post(addr, payload=b'', version='HTTP/1.1', headers={},  auth=()):
 
     if auth: default['authorization'] = build_auth(*auth)
 
-    request = (request + build_headers(default)).encode('utf8') + payload
+    request = (request + build_headers(default)).encode('ascii') + payload
     port    = url.port if url.port else getservbyname(url.scheme)
 
     return create_con_ssl(url.hostname, port, request) \
@@ -211,6 +205,7 @@ def build_auth(username, password):
     base = encodestring(b'%s:%s' % (username, password))
     base = base.replace(b'\n', b'').decode('utf8')
     return "Basic %s" % base
+
 
 
 

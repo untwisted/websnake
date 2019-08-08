@@ -29,7 +29,14 @@ def create_post(filename, run=True, type='Plain Text'):
     'submit':'Submit',
     'run': run}
     
-    con = post('http://codepad.org/', payload=urlencode(payload))
+    headers={'cookie':('__utmz=106200'
+    '593.1546731793.1.1.utmcsr=(direct)'
+    'utmccn=(direct)|utmcmd=(none); __utma=106200593.112'
+    '2846840.1546731793.1561916276.1565289788.8; __utmc=106200593;'
+    'codepad-session=8cee1945a8158b2ad5c57921d6862496f4338799ec8c59042479bf972e9a92199dd18a42;'
+    '__utmb=106200593.6.10.1565289788').join('')}
+
+    con = post('http://codepad.org/', payload=urlencode(payload).encode('utf8'), headers=headers)
     xmap(con, ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
@@ -42,6 +49,7 @@ if __name__ == '__main__':
 
     create_post(args.filename, args.run, args.type)
     core.gear.mainloop()
+
 
 
 

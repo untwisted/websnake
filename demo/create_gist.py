@@ -5,7 +5,6 @@ Overview
 Create an anonymous gist on github.
 
 """
-from __future__ import print_function
 
 from websnake import post, ResponseHandle
 from untwisted.network import xmap, core
@@ -29,6 +28,7 @@ def create():
 if __name__ == '__main__':
     create()
     core.gear.mainloop()
+
 
 
 

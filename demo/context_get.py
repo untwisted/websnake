@@ -1,4 +1,3 @@
-from __future__ import print_function
 from websnake import ContextGet, core
 
 def create_connection(addr):
@@ -33,6 +32,7 @@ if __name__ == '__main__':
     for ind in urls:
         create_connection(ind)
     core.gear.mainloop()
+
 
 
 

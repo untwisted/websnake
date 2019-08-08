@@ -1,4 +1,3 @@
-from __future__ import print_function
 from websnake import get, ResponseHandle, TransferHandle
 from untwisted.network import xmap, core
 from untwisted.event import CONNECT_ERR, CONNECT, WRITE, CLOSE,  SSL_CONNECT, DUMPED, SSL_SEND_ERR, SSL_CERTIFICATE_ERR, SSL_CONNECT_ERR
@@ -72,6 +71,7 @@ if __name__ == '__main__':
     con = create_connection(sys.argv[1])
 
     core.gear.mainloop()
+
 
 
 

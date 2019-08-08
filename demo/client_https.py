@@ -5,7 +5,6 @@ Overview
 Retrieve user data from github.
 
 """
-from __future__ import print_function
 
 from websnake import get, ResponseHandle
 from untwisted.network import xmap, core
@@ -23,6 +22,7 @@ if __name__ == '__main__':
 
     xmap(con, ResponseHandle.DONE, on_done)
     core.gear.mainloop()
+
 
 
 

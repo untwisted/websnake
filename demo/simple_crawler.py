@@ -1,7 +1,6 @@
 """
 A simple crawler.
 """
-from __future__ import print_function
 
 from websnake import get, ResponseHandle
 from untwisted.network import xmap, core
@@ -33,6 +32,7 @@ if __name__ == '__main__':
     con = create_connection('https://www.google.com.br/')
 
     core.gear.mainloop()
+
 
 
 
