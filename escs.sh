@@ -52,7 +52,8 @@ rm MANIFEST
 ##############################################################################
 # Update on pypi.
 cd ~/projects/websnake-code
-python setup.py sdist register upload
+python setup.py sdist 
+twine upload dist/*
 rm -fr dist
 ##############################################################################
 # futurize code.
