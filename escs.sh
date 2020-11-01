@@ -50,10 +50,9 @@ python2.6 setup.py sdist
 rm -fr dist
 rm MANIFEST
 ##############################################################################
-# share, put, place, host, package, python, pip, application, websnake.
-
+# Update on pypi.
 cd ~/projects/websnake-code
-python2 setup.py sdist register upload
+python setup.py sdist register upload
 rm -fr dist
 ##############################################################################
 # futurize code.
