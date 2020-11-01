@@ -6,11 +6,11 @@ from untwisted.splits import AccUntil, TmpFile
 from untwisted.network import Spin, xmap, spawn, SSL
 from untwisted.dispatcher import Dispatcher
 from untwisted.event import get_event
+from base64 import encodebytes
 from untwisted import core
 from tempfile import TemporaryFile 
 from socket import getservbyname
 import sys
-
 
 class Headers(dict):
     def __init__(self, data):
@@ -196,22 +196,13 @@ def post(addr, payload=b'', version='HTTP/1.1', headers={},  auth=()):
     if url.scheme == 'https' else create_con(url.hostname, port, request)
 
 def build_auth(username, password):
-    from base64 import encodestring
-    
     # The headers will be encoded as utf8.
     username = username.encode('utf8')
     password = password.encode('utf8')
 
-    base = encodestring(b'%s:%s' % (username, password))
+    base = encodebytes(b'%s:%s' % (username, password))
     base = base.replace(b'\n', b'').decode('utf8')
     return "Basic %s" % base
-
-
-
-
-
-
-
 
 
 
