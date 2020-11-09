@@ -37,9 +37,7 @@ class ResponseHandle:
         # otherwise it may occur of TmpFile spawning
         # done in the first cycle.
         spin.add_map(TmpFile.DONE,  lambda spin, fd, data: lose(spin))
-
-        spin.add_map(TmpFile.DONE, 
-        lambda spin, fd, data: fd.seek(0))
+        spin.add_map(TmpFile.DONE, lambda spin, fd, data: fd.seek(0))
 
         spin.add_map(TmpFile.DONE,  lambda spin, fd, data: 
         spin.drive(ResponseHandle.DONE, self.response))
@@ -60,16 +58,20 @@ class ResponseHandle:
             spin.add_map(CLOSE,  lambda spin, err: 
                 spin.drive(ResponseHandle.DONE, self.response))
 
-class Response(object):
+class Response:
     def __init__(self, data):
-        data                                 = data.decode('utf8')
-        data                                 = data.split('\r\n')
-        response                             = data.pop(0)
-        self.version, self.code, self.reason = response.split(' ', 2)
-        self.headers                         = Headers(data)
-        self.fd                              = TemporaryFile('w+b')
+        data     = data.decode('utf8').split('\r\n')
+        response = data.pop(0)
+        code     = response.split(' ', 2)
 
-class HttpCode(object):
+        self.version = code[0]
+        self.code    = code[1]
+        self.reason  = code[2]
+
+        self.headers = Headers(data)
+        self.fd = TemporaryFile('w+b')
+
+class HttpCode:
     def __init__(self, spin):
         spin.add_map(ResponseHandle.DONE, lambda spin, response: 
             spin.drive(response.code, response))
