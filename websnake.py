@@ -1,16 +1,13 @@
-from untwisted.iostd import LOAD, CLOSE, CONNECT, CONNECT_ERR, \
-Client, Stdin, Stdout, lose, create_client
+from untwisted.client import lose, create_client, create_client_ssl
 from urllib.parse import urlencode, urlparse
-from untwisted.iossl import SSL_CONNECT, create_client_ssl
 from untwisted.splits import AccUntil, TmpFile
-from untwisted.network import Spin, xmap, spawn, SSL
 from untwisted.dispatcher import Dispatcher
-from untwisted.event import get_event
+from untwisted.event import get_event, SSL_CONNECT, CLOSE, CONNECT, LOAD
 from base64 import encodebytes
-from untwisted import core
 from tempfile import TemporaryFile 
 from socket import getservbyname
-import sys
+from untwisted.core import die
+from untwisted import core
 
 class Headers(dict):
     def __init__(self, data):
@@ -18,20 +15,20 @@ class Headers(dict):
             field, sep, value = ind.partition(':')
             self[field.lower()] = value
 
-class TransferHandle(object):
+class TransferHandle:
     DONE = get_event()
 
     def __init__(self, spin):
-        xmap(spin, AccUntil.DONE, lambda spin, response, data: 
-        spawn(spin, TransferHandle.DONE, Response(response), data))
+        spin.add_map(AccUntil.DONE, lambda spin, response, data: 
+        spin.drive(TransferHandle.DONE, Response(response), data))
 
-class ResponseHandle(object):
+class ResponseHandle:
     DONE     = get_event()
     MAX_SIZE = 1024 * 1024
 
     def __init__(self, spin):
         self.response = None
-        xmap(spin, TransferHandle.DONE, self.process)
+        spin.add_map(TransferHandle.DONE, self.process)
 
     def process(self, spin, response, data):
         self.response = response
@@ -39,20 +36,20 @@ class ResponseHandle(object):
         # These handles have to be mapped here
         # otherwise it may occur of TmpFile spawning
         # done in the first cycle.
-        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: lose(spin))
+        spin.add_map(TmpFile.DONE,  lambda spin, fd, data: lose(spin))
 
-        xmap(spin, TmpFile.DONE, 
+        spin.add_map(TmpFile.DONE, 
         lambda spin, fd, data: fd.seek(0))
 
-        xmap(spin, TmpFile.DONE,  lambda spin, fd, data: 
-        spawn(spin, ResponseHandle.DONE, self.response))
+        spin.add_map(TmpFile.DONE,  lambda spin, fd, data: 
+        spin.drive(ResponseHandle.DONE, self.response))
 
         TmpFile(spin, data, int(response.headers.get(
         b'content-length', self.MAX_SIZE)), response.fd)
 
         # Reset the fd in case of the socket getting closed
         # and there is no content-length header.
-        xmap(spin, CLOSE,  lambda spin, err: 
+        spin.add_map(CLOSE,  lambda spin, err: 
         self.response.fd.seek(0))
 
         # The fact of destroying the Spin instance when on TmpFile.DONE
@@ -60,8 +57,8 @@ class ResponseHandle(object):
         # So it spawns ResponseHandle.DONE only if there is 
         # a content-length header.
         if not b'content-length' in response.headers:
-            xmap(spin, CLOSE,  lambda spin, err: 
-                spawn(spin,  ResponseHandle.DONE, self.response))
+            spin.add_map(CLOSE,  lambda spin, err: 
+                spin.drive(ResponseHandle.DONE, self.response))
 
 class Response(object):
     def __init__(self, data):
@@ -74,8 +71,8 @@ class Response(object):
 
 class HttpCode(object):
     def __init__(self, spin):
-        xmap(spin, ResponseHandle.DONE, lambda spin, response: 
-            spawn(spin, response.code, response))
+        spin.add_map(ResponseHandle.DONE, lambda spin, response: 
+            spin.drive(response.code, response))
 
 def on_connect(spin, request):
     AccUntil(spin)
@@ -83,17 +80,16 @@ def on_connect(spin, request):
 
     ResponseHandle(spin)
     HttpCode(spin)
-
     spin.dump(request)
 
 def create_con_ssl(addr, port, data):
     con = create_client_ssl(addr, port)  
-    xmap(con, SSL_CONNECT,  on_connect, data)
+    con.add_map(SSL_CONNECT,  on_connect, data)
     return con
 
 def create_con(addr, port, data):
     con = create_client(addr, port)
-    xmap(con, CONNECT,  on_connect, data)
+    con.add_map(CONNECT,  on_connect, data)
     return con
 
 def build_headers(headers):
@@ -112,18 +108,19 @@ class Context(Dispatcher):
         self.con    = method(addr, *self.args, **self.kwargs)
         self.con.add_map(ResponseHandle.DONE, self.redirect)
         super(Context, self).__init__()
-        self.con.add_handle(self.proxy)
+        self.con.add_handle(self.send)
 
     def redirect(self, con, response):
         location = response.headers.get('location')
-        if location: self.switch(location)
 
-    def switch(self, location):
+        if not location: 
+            return None
+
         con = self.method(location, *self.args, **self.kwargs)
         con.add_map(ResponseHandle.DONE, self.redirect)
-        con.add_handle(self.proxy)
+        con.add_handle(self.send)
 
-    def proxy(self, con, event, args):
+    def send(self, con, event, *args):
         self.drive(event, con, *args)
 
 class ContextGet(Context):
@@ -157,7 +154,8 @@ def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
     default.update(headers)
     args = '?%s' % urlencode(args) if args else ''
 
-    if auth: default['authorization'] = build_auth(*auth)
+    if auth: 
+        default['authorization'] = build_auth(*auth)
 
     data = 'GET %s%s %s\r\n' % (url.path + ('?' + url.query if \
     url.query else ''), args, version)
@@ -187,7 +185,8 @@ def post(addr, payload=b'', version='HTTP/1.1', headers={},  auth=()):
     request  = 'POST %s %s\r\n' % (url.path + ('?' + url.query if \
     url.query else ''), version)
 
-    if auth: default['authorization'] = build_auth(*auth)
+    if auth: 
+        default['authorization'] = build_auth(*auth)
 
     request = (request + build_headers(default)).encode('ascii') + payload
     port    = url.port if url.port else getservbyname(url.scheme)

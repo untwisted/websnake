@@ -9,14 +9,18 @@ Example:
     python2 codepad.py -f file.py
 
 """
-from __future__ import print_function
 
 from websnake import ResponseHandle, post, urlencode
-from untwisted.network import Spin, xmap, core, die
+from websnake import core, die
+from websnake import CLOSE
 import argparse
 
 def on_done(spin, response):
-    print('URL:%s' % response.headers['location'])
+    print('URL:%s' % response.headers)
+    die()
+
+def on_close(spin, err):
+    print('Socket closed !')
     die()
 
 def create_post(filename, run=True, type='Plain Text'):
@@ -29,15 +33,11 @@ def create_post(filename, run=True, type='Plain Text'):
     'submit':'Submit',
     'run': run}
     
-    headers={'cookie':('__utmz=106200'
-    '593.1546731793.1.1.utmcsr=(direct)'
-    'utmccn=(direct)|utmcmd=(none); __utma=106200593.112'
-    '2846840.1546731793.1561916276.1565289788.8; __utmc=106200593;'
-    'codepad-session=8cee1945a8158b2ad5c57921d6862496f4338799ec8c59042479bf972e9a92199dd18a42;'
-    '__utmb=106200593.6.10.1565289788').join('')}
+    headers={}
 
-    con = post('http://codepad.org/', payload=urlencode(payload).encode('utf8'), headers=headers)
-    xmap(con, ResponseHandle.DONE, on_done)
+    con = post('http://http://hilite.me/', payload=urlencode(payload).encode('utf8'), headers=headers)
+    con.add_map(ResponseHandle.DONE, on_done)
+    con.add_map(CLOSE, on_close)
 
 if __name__ == '__main__':
     parser= argparse.ArgumentParser()

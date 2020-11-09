@@ -1,5 +1,4 @@
-from websnake import get, ResponseHandle
-from untwisted.network import xmap, core
+from websnake import get, ResponseHandle, core, die
 
 def on_done(con, response):
     print(response.headers)
@@ -7,11 +6,11 @@ def on_done(con, response):
     print(response.version)
     print(response.reason) 
     print(response.fd.read())
+    die()
 
 if __name__ == '__main__':
-    xmap(get('http://codepad.org/'), 
-    ResponseHandle.DONE, on_done)
-
+    con = get('http://codepad.org/')
+    con.add_map(ResponseHandle.DONE, on_done)
     core.gear.mainloop()
 
 
