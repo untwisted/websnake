@@ -2,7 +2,7 @@ from untwisted.client import lose, create_client, create_client_ssl
 from urllib.parse import urlencode, urlparse
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
-from untwisted.event import get_event, SSL_CONNECT, CLOSE, CONNECT, LOAD
+from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT, LOAD
 from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
@@ -15,20 +15,22 @@ class Headers(dict):
             field, sep, value = ind.partition(':')
             self[field.lower()] = value
 
-class TransferHandle:
-    DONE = get_event()
+class HeaderHandle:
+    class DONE(Event):
+        pass
 
     def __init__(self, spin):
         spin.add_map(AccUntil.DONE, lambda spin, response, data: 
-        spin.drive(TransferHandle.DONE, Response(response), data))
+        spin.drive(HeaderHandle.DONE, Response(response), data))
 
 class ResponseHandle:
-    DONE     = get_event()
-    MAX_SIZE = 1024 * 1024
+    class DONE(Event):
+        pass
 
+    MAX_SIZE = 1024 * 1024
     def __init__(self, spin):
         self.response = None
-        spin.add_map(TransferHandle.DONE, self.process)
+        spin.add_map(HeaderHandle.DONE, self.process)
 
     def process(self, spin, response, data):
         self.response = response
@@ -78,7 +80,7 @@ class HttpCode:
 
 def on_connect(spin, request):
     AccUntil(spin)
-    TransferHandle(spin)
+    HeaderHandle(spin)
 
     ResponseHandle(spin)
     HttpCode(spin)
