@@ -109,23 +109,19 @@ class Context(Dispatcher):
         self.args   = args
         self.kwargs = kwargs
         self.method = method
-        self.con    = method(addr, *self.args, **self.kwargs)
-        self.con.add_map(ResponseHandle.DONE, self.redirect)
+        self.con    = None
+
         super(Context, self).__init__()
-        self.con.add_handle(self.send)
+
+    def connect(self, addr=None):
+        self.con = self.method(addr if addr else self.addr, *self.args, **self.kwargs)
+        self.con.add_map(ResponseHandle.DONE, self.redirect)
+        self.con.update_base(self.base)
 
     def redirect(self, con, response):
         location = response.headers.get('location')
-
-        if not location: 
-            return None
-
-        con = self.method(location, *self.args, **self.kwargs)
-        con.add_map(ResponseHandle.DONE, self.redirect)
-        con.add_handle(self.send)
-
-    def send(self, con, event, *args):
-        self.drive(event, con, *args)
+        if location:
+            self.connect(location)
 
 class ContextGet(Context):
     def __init__(self, addr, args={},  
