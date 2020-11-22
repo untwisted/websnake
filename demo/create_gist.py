@@ -6,8 +6,8 @@ Create an anonymous gist on github.
 
 """
 
-from websnake import post, ResponseHandle
-from untwisted.network import xmap, core
+from websnake import Post, ResponseHandle
+from untwisted.network import core
 import json
 
 def on_done(con, response):
@@ -15,15 +15,17 @@ def on_done(con, response):
 
 def create():
     payload = {
-    "description": "the description for this gist",
+    "description": "the description for this gist1",
     "public": "true", "files": {
     "file1.txt": {"content": "String file contents"}}}
 
-    con = post('https://api.github.com/gists',      
-    payload=json.dumps(payload).encode('utf8'), 
-    headers={'content-type': 'application/json'})
 
-    xmap(con, ResponseHandle.DONE, on_done)
+    request = Post('https://api.github.com/gists',
+    payload=json.dumps(payload).encode('utf8'), 
+    headers={'content-type': 'application/json',
+    'authorization': ''})
+
+    request.add_map(ResponseHandle.RESPONSE, on_done)
 
 if __name__ == '__main__':
     create()

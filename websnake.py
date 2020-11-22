@@ -2,12 +2,17 @@ from untwisted.client import lose, create_client, create_client_ssl
 from urllib.parse import urlencode, urlparse
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
-from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT, LOAD
+from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT
 from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
 from untwisted.core import die
 from untwisted import core
+
+default_headers = {
+'user-agent':'Websnake/1.0.0', 
+'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+'connection':'close'}
 
 class Headers(dict):
     def __init__(self, data):
@@ -15,50 +20,59 @@ class Headers(dict):
             field, sep, value = ind.partition(':')
             self[field.lower()] = value
 
-class HeaderHandle:
-    class DONE(Event):
-        pass
-
-    def __init__(self, spin):
-        spin.add_map(AccUntil.DONE, lambda spin, response, data: 
-        spin.drive(HeaderHandle.DONE, Response(response), data))
+    # def get(self, key, default):
+        # pass
 
 class ResponseHandle:
     class DONE(Event):
         pass
 
+    class ERROR(Event):
+        pass
+
+    class RESPONSE(Event):
+        pass
+
     MAX_SIZE = 1024 * 1024
-    def __init__(self, spin):
+    def __init__(self, request):
+        self.request = request
         self.response = None
-        spin.add_map(HeaderHandle.DONE, self.process)
 
-    def process(self, spin, response, data):
-        self.response = response
+        self.acc = AccUntil(request.con)
+        self.tmpfile = TmpFile(request.con)
 
-        # These handles have to be mapped here
-        # otherwise it may occur of TmpFile spawning
-        # done in the first cycle.
-        spin.add_map(TmpFile.DONE,  lambda spin, fd, data: lose(spin))
-        spin.add_map(TmpFile.DONE, lambda spin, fd, data: fd.seek(0))
+        request.con.add_map(AccUntil.DONE, self.handle_terminator)
+        request.con.add_map(TmpFile.DONE,  self.handle_bdata)
+        request.con.add_map(CLOSE,  self.handle_close)
+        self.acc.start()
 
-        spin.add_map(TmpFile.DONE,  lambda spin, fd, data: 
-        spin.drive(ResponseHandle.DONE, self.response))
+    def handle_terminator(self, con, header, bdata):
+        """
+        """
 
-        TmpFile(spin, data, int(response.headers.get(
-        b'content-length', self.MAX_SIZE)), response.fd)
+        self.response = Response(header)
+        size = self.response.headers.get('content-length', 0)
+        size = int(size)
+        self.tmpfile.start(self.response.fd, size, bdata)
 
-        # Reset the fd in case of the socket getting closed
-        # and there is no content-length header.
-        spin.add_map(CLOSE,  lambda spin, err: 
-        self.response.fd.seek(0))
+        # if self.MAX_SIZE <= size:
+            # request.drive(self.ERROR, response, 'Content-length too long.')
+        # else:
 
-        # The fact of destroying the Spin instance when on TmpFile.DONE
-        # doesnt warrant the CLOSE event will not be fired.
-        # So it spawns ResponseHandle.DONE only if there is 
-        # a content-length header.
-        if not b'content-length' in response.headers:
-            spin.add_map(CLOSE,  lambda spin, err: 
-                spin.drive(ResponseHandle.DONE, self.response))
+    def handle_bdata(self, con, fd, data):
+        fd.seek(0)
+
+        self.request.drive(self.response.code, self.response)
+        self.request.drive(ResponseHandle.RESPONSE, self.response)
+
+        # location = response.headers.get('location')
+        # if location is not None:
+            # self.context.redirect(location)
+        # else:
+            # request.drive(self.DONE)
+
+    def handle_close(self, con, err):
+        pass
 
 class Response:
     def __init__(self, data):
@@ -73,29 +87,94 @@ class Response:
         self.headers = Headers(data)
         self.fd = TemporaryFile('w+b')
 
-class HttpCode:
-    def __init__(self, spin):
-        spin.add_map(ResponseHandle.DONE, lambda spin, response: 
-            spin.drive(response.code, response))
+class Request(Dispatcher):
+    def __init__(self, addr, headers, version, auth):
+        self.headers = default_headers.copy()
+        self.version = version
+        self.auth = auth
 
-def on_connect(spin, request):
-    AccUntil(spin)
-    HeaderHandle(spin)
+        self.addr = addr.strip()
+        self.addr = self.addr.rstrip()
+    
+        self.headers.update(headers)
+        if auth: 
+            self.headers['authorization'] = build_auth(*auth)
 
-    ResponseHandle(spin)
-    HttpCode(spin)
-    spin.dump(request)
+        self.con = self.connect(addr)
+        super(Request, self).__init__()
 
-def create_con_ssl(addr, port, data):
-    con = create_client_ssl(addr, port)  
-    con.add_map(SSL_CONNECT,  on_connect, data)
-    return con
+    def on_connect(self, con):
+        pass
 
-def create_con(addr, port, data):
-    con = create_client(addr, port)
-    con.add_map(CONNECT,  on_connect, data)
-    return con
+    def create_con_ssl(self, addr, port):
+        con = create_client_ssl(addr, port)  
+        con.add_map(SSL_CONNECT,  self.on_connect)
+        return con
+    
+    def create_con(self, addr, port):
+        con = create_client(addr, port)
+        con.add_map(CONNECT,  self.on_connect)
+        return con
 
+    def connect(self, addr):
+        self.addr = addr
+        urlparser = urlparse(addr)
+
+        port = urlparser.port
+        if not port:
+            port = getservbyname(urlparser.scheme)
+
+        # The hostname has to be here in case of redirect.
+        self.headers['host'] = urlparser.hostname
+
+        if urlparser.scheme == 'https':
+            return self.create_con_ssl(urlparser.hostname, port)
+        return self.create_con(urlparser.hostname, port)
+    
+class Get(Request):
+    def __init__(self, addr, args={}, 
+        headers={}, version='HTTP/1.1', auth=()):
+
+        self.args = args
+        super(Get, self).__init__(addr, headers, version, auth)
+
+    def on_connect(self, con):
+        ResponseHandle(self)
+        urlparser = urlparse(self.addr)
+        resource  = ''
+
+        resource = urlparser.path
+        if self.args or urlparser.query:
+            resource = ''.join(resource, 
+                '?', urlparser.query, urlencode(self.args))
+        
+        request_text = 'GET %s %s\r\n' % (resource, self.version)
+        headers_text = build_headers(self.headers)
+        request_text = request_text + headers_text
+        request_text = request_text.encode('ascii')
+        print('Sent:', repr(request_text))
+        con.dump(request_text)
+
+class Post(Request):
+    def __init__(self, addr, payload='b', 
+        headers={}, version='HTTP/1.1', auth=()):
+
+        self.payload = payload
+        super(Post, self).__init__(addr, headers, version, auth)
+
+    def on_connect(self, con):
+        ResponseHandle(self)
+
+        urlparser = urlparse(self.addr)
+
+        request_text = 'POST %s %s\r\n' % (urlparser.path, self.version)
+        headers_text = build_headers(self.headers)
+        request_text = request_text + headers_text 
+        request_text = request_text.encode('ascii') + self.payload
+    
+        print('Sent:', repr(request_text))
+        con.dump(request_text)
+    
 def build_headers(headers):
     data = ''
     for key, value in headers.items():
@@ -103,105 +182,10 @@ def build_headers(headers):
     data = data + '\r\n'
     return data
 
-class Context(Dispatcher):
-    def __init__(self, method, addr, *args, **kwargs):
-        self.addr   = addr
-        self.args   = args
-        self.kwargs = kwargs
-        self.method = method
-        self.con    = None
-
-        super(Context, self).__init__()
-
-    def connect(self, addr=None):
-        self.con = self.method(addr if addr else self.addr, *self.args, **self.kwargs)
-        self.con.add_map(ResponseHandle.DONE, self.redirect)
-        self.con.update_base(self.base)
-
-    def redirect(self, con, response):
-        location = response.headers.get('location')
-        if location:
-            self.connect(location)
-
-class ContextGet(Context):
-    def __init__(self, addr, args={},  
-        headers={}, version='HTTP/1.1', auth=()):
-
-        super(ContextGet, self).__init__(get, addr, 
-            args,  headers, version, auth)
-
-class ContextPost(Context):
-    def __init__(self, addr, payload='', 
-        version='HTTP/1.1', headers={},  auth=()):
-
-        super(ContextPost, self).__init__(post, addr, 
-            payload,  version, headers, auth)
-
-def get(addr, args={},  headers={}, version='HTTP/1.1', auth=()):
-
-    """
-    It does an http/https request.
-    """
-
-    addr    = addr.strip().rstrip()
-    url     = urlparse(addr)
-    default = {
-    'user-agent':'Websnake/1.0.0', 
-    'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-    'connection':'close',
-    'host': url.hostname}
-
-    default.update(headers)
-    args = '?%s' % urlencode(args) if args else ''
-
-    if auth: 
-        default['authorization'] = build_auth(*auth)
-
-    data = 'GET %s%s %s\r\n' % (url.path + ('?' + url.query if \
-    url.query else ''), args, version)
-    data = data + build_headers(default)
-    port = url.port if url.port else getservbyname(url.scheme)
-    data = data.encode('ascii')
-
-    return create_con_ssl(url.hostname, port, data) \
-    if url.scheme == 'https' else create_con(url.hostname, port, data)
-
-def post(addr, payload=b'', version='HTTP/1.1', headers={},  auth=()):
-
-    """
-    """
-
-    addr    = addr.strip().rstrip()
-    url     = urlparse(addr)
-    default = {'user-agent':"Untwisted-requests/1.0.0", 
-    'accept-charset':b'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-    'connection':'close',
-    'host': url.hostname,
-    'content-type': 'application/x-www-form-urlencoded',
-    'content-length': len(payload)}
-
-    default.update(headers)
-
-    request  = 'POST %s %s\r\n' % (url.path + ('?' + url.query if \
-    url.query else ''), version)
-
-    if auth: 
-        default['authorization'] = build_auth(*auth)
-
-    request = (request + build_headers(default)).encode('ascii') + payload
-    port    = url.port if url.port else getservbyname(url.scheme)
-
-    return create_con_ssl(url.hostname, port, request) \
-    if url.scheme == 'https' else create_con(url.hostname, port, request)
-
 def build_auth(username, password):
-    # The headers will be encoded as utf8.
     username = username.encode('utf8')
     password = password.encode('utf8')
 
     base = encodebytes(b'%s:%s' % (username, password))
     base = base.replace(b'\n', b'').decode('utf8')
     return "Basic %s" % base
-
-
-

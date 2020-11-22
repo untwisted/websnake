@@ -6,7 +6,7 @@ Retrieve user data from github.
 
 """
 
-from websnake import get, ResponseHandle, core, die
+from websnake import Get, ResponseHandle, core, die
 
 def on_done(con, response):
     print(response.headers)
@@ -17,10 +17,10 @@ def on_done(con, response):
     die()
 
 if __name__ == '__main__':
-    con = get('https://api.github.com/user', 
+    request = Get('https://api.github.com/user', 
     auth=('iogf', 'FuinhoSaliente'))
     
-    con.add_map(ResponseHandle.DONE, on_done)
+    request.add_map(ResponseHandle.RESPONSE, on_done)
     core.gear.mainloop()
 
 

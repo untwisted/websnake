@@ -1,6 +1,6 @@
-from websnake import get, ResponseHandle, core, die
+from websnake import Get, ResponseHandle, core, die
 
-def on_done(con, response):
+def on_response(con, response):
     print(response.headers)
     print(response.code)
     print(response.version)
@@ -9,8 +9,8 @@ def on_done(con, response):
     die()
 
 if __name__ == '__main__':
-    con = get('http://codepad.org/')
-    con.add_map(ResponseHandle.DONE, on_done)
+    request = Get('http://codepad.org/')
+    request.add_map(ResponseHandle.RESPONSE, on_response)
     core.gear.mainloop()
 
 
