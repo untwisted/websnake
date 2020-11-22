@@ -6,14 +6,15 @@ Retrieve user data from github.
 
 """
 
-from websnake import Get, ResponseHandle, core
+from websnake import Get, ResponseHandle, core, die
 
 def on_response(request, response):
-    print(response.headers)
-    print(response.code)
-    print(response.version)
-    print(response.reason) 
-    print(response.fd.read())
+    print('Headers:', response.headers)
+    print('Code:', response.code)
+    print('Version:', response.version)
+    print('Reason:', response.reason) 
+    print('Data:', response.fd.read())
+    die('Request done.')
 
 if __name__ == '__main__':
     request = Get('https://api.github.com/user', 

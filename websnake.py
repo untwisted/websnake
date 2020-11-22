@@ -14,6 +14,10 @@ default_headers = {
 'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 'connection':'close'}
 
+errcodes = {
+
+}
+
 class Headers(dict):
     def __init__(self, data):
         for ind in data:
@@ -54,15 +58,16 @@ class ResponseHandle:
         size = self.response.headers.get('content-length', 0)
         size = int(size)
         self.tmpfile.start(self.response.fd, size, bdata)
-        # if self.MAX_SIZE <= size:
-            # request.drive(self.ERROR, response, 'Content-length too long.')
-        # else:
+
+        if self.MAX_SIZE <= size:
+            request.drive(self.ERROR, response, 'Content-length too long.')
 
     def handle_bdata(self, con, fd, data):
         fd.seek(0)
 
         self.request.drive(self.response.code, self.response)
         self.request.drive(ResponseHandle.RESPONSE, self.response)
+        lose(con)
 
         location = self.response.headers.get('location')
         if location is not None:
@@ -71,18 +76,18 @@ class ResponseHandle:
             self.request.drive(self.DONE, self.response)
 
     def handle_close(self, con, err):
-        print('Close')
+        self.request.drive(self.ERROR, self.response, 'Corrupted response.')
+        pass
 
 class Response:
     def __init__(self, data):
-        data     = data.decode('utf8').split('\r\n')
+        data = data.decode('utf8').split('\r\n')
         response = data.pop(0)
-        code     = response.split(' ', 2)
+        code = response.split(' ', 2)
 
         self.version = code[0]
         self.code    = code[1]
         self.reason  = code[2]
-
         self.headers = Headers(data)
         self.fd = TemporaryFile('w+b')
 
@@ -141,8 +146,8 @@ class Get(Request):
         ResponseHandle(self)
         urlparser = urlparse(self.addr)
         resource  = ''
+        resource  = urlparser.path
 
-        resource = urlparser.path
         if self.args or urlparser.query:
             resource = ''.join(resource, 
                 '?', urlparser.query, urlencode(self.args))
@@ -163,8 +168,7 @@ class Post(Request):
     def on_connect(self, con):
         ResponseHandle(self)
 
-        urlparser = urlparse(self.addr)
-
+        urlparser    = urlparse(self.addr)
         request_text = 'POST %s %s\r\n' % (urlparser.path, self.version)
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text 
