@@ -25,7 +25,7 @@ def create():
     headers={'content-type': 'application/json',
     'authorization': ''})
 
-    request.add_map(ResponseHandle.RESPONSE, on_done)
+    request.add_map(ResponseHandle.DONE, on_done)
 
 if __name__ == '__main__':
     create()

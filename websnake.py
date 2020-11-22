@@ -54,7 +54,6 @@ class ResponseHandle:
         size = self.response.headers.get('content-length', 0)
         size = int(size)
         self.tmpfile.start(self.response.fd, size, bdata)
-
         # if self.MAX_SIZE <= size:
             # request.drive(self.ERROR, response, 'Content-length too long.')
         # else:
@@ -65,14 +64,14 @@ class ResponseHandle:
         self.request.drive(self.response.code, self.response)
         self.request.drive(ResponseHandle.RESPONSE, self.response)
 
-        # location = response.headers.get('location')
-        # if location is not None:
-            # self.context.redirect(location)
-        # else:
-            # request.drive(self.DONE)
+        location = self.response.headers.get('location')
+        if location is not None:
+            self.request.redirect(location)
+        else:
+            self.request.drive(self.DONE, self.response)
 
     def handle_close(self, con, err):
-        pass
+        print('Close')
 
 class Response:
     def __init__(self, data):
@@ -93,9 +92,6 @@ class Request(Dispatcher):
         self.version = version
         self.auth = auth
 
-        self.addr = addr.strip()
-        self.addr = self.addr.rstrip()
-    
         self.headers.update(headers)
         if auth: 
             self.headers['authorization'] = build_auth(*auth)
@@ -117,8 +113,9 @@ class Request(Dispatcher):
         return con
 
     def connect(self, addr):
-        self.addr = addr
-        urlparser = urlparse(addr)
+        self.addr = addr.strip()
+        self.addr = self.addr.rstrip()
+        urlparser = urlparse(self.addr)
 
         port = urlparser.port
         if not port:
@@ -126,11 +123,13 @@ class Request(Dispatcher):
 
         # The hostname has to be here in case of redirect.
         self.headers['host'] = urlparser.hostname
-
         if urlparser.scheme == 'https':
             return self.create_con_ssl(urlparser.hostname, port)
         return self.create_con(urlparser.hostname, port)
     
+    def redirect(self, addr):
+        self.con = self.connect(addr)
+
 class Get(Request):
     def __init__(self, addr, args={}, 
         headers={}, version='HTTP/1.1', auth=()):
@@ -152,7 +151,6 @@ class Get(Request):
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text
         request_text = request_text.encode('ascii')
-        print('Sent:', repr(request_text))
         con.dump(request_text)
 
 class Post(Request):
@@ -172,7 +170,6 @@ class Post(Request):
         request_text = request_text + headers_text 
         request_text = request_text.encode('ascii') + self.payload
     
-        print('Sent:', repr(request_text))
         con.dump(request_text)
     
 def build_headers(headers):

@@ -1,8 +1,8 @@
-from websnake import get, ResponseHandle, die
+from websnake import Get, ResponseHandle, die
 from untwisted import core
 from untwisted.client import lose
 
-def on_done(con, response):
+def on_done(request, response):
     print(response.headers)
     print(response.code)
     print(response.version)
