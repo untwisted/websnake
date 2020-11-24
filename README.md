@@ -32,7 +32,7 @@ def create_connection(addr):
     request = ContextGet(addr)
     
     # Get on_done handle only when '200' HTTP response happens.
-    # The request.con is merely a Spin instance.
+    # The request.con is merely a SuperSocket instance.
     # See: https://github.com/iogf/untwisted
     request.add_map('200', on_done)
 
