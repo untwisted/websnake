@@ -56,9 +56,6 @@ class ResponseHandle:
         request.con.add_map(CLOSE,  self.handle_close)
         request.con.add_map(CONNECT_ERR,  self.handle_connect_err)
         self.request.con.add_map(TmpFile.DONE,  self.handle_bdata)
-
-        print('OPEN:', self.request.addr, 
-        self.request.c_attempts)
         self.acc.start()
 
     def handle_terminator(self, con, header, bdata):
