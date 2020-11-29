@@ -74,10 +74,6 @@ class ResponseHandle:
             self.request.drive(self.ERROR, self.response, SIZE_ERR)
 
     def handle_bdata(self, con, fd, data):
-        print('CLOSE:', self.request.addr, 
-        self.request.c_attempts, self.response.code, 
-        self.response.headers.get('location'))
-
         lose(con)
         self.handle_response()
 
