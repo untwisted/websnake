@@ -2,7 +2,7 @@ from untwisted.client import lose, create_client, create_client_ssl
 from urllib.parse import urlencode, urlparse
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
-from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT
+from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT, CONNECT_ERR
 from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
@@ -14,18 +14,25 @@ default_headers = {
 'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 'connection':'close'}
 
-errcodes = {
+MSGERR = ('Content-length too long', 'Corrupted response.')
+RESP_ERR = 0
+CON_ERR  = 1
+SIZE_ERR = 2
 
-}
-
-class Headers(dict):
+class Headers:
     def __init__(self, data):
+        self.headers = dict()
         for ind in data:
             field, sep, value = ind.partition(':')
-            self[field.lower()] = value
+            self.headers[field.lower()] = value
 
-    # def get(self, key, default):
-        # pass
+    def get(self, field, default=None):
+        field = field.lower()
+        return self.headers.get(field, default)
+
+    def update(self, other):
+        for ind in other.headers.items:
+            self.headers[ind[0].lower()] = ind[1]
 
 class ResponseHandle:
     class DONE(Event):
@@ -46,8 +53,12 @@ class ResponseHandle:
         self.tmpfile = TmpFile(request.con)
 
         request.con.add_map(AccUntil.DONE, self.handle_terminator)
-        request.con.add_map(TmpFile.DONE,  self.handle_bdata)
         request.con.add_map(CLOSE,  self.handle_close)
+        request.con.add_map(CONNECT_ERR,  self.handle_connect_err)
+        self.request.con.add_map(TmpFile.DONE,  self.handle_bdata)
+
+        print('OPEN:', self.request.addr, 
+        self.request.c_attempts)
         self.acc.start()
 
     def handle_terminator(self, con, header, bdata):
@@ -55,29 +66,55 @@ class ResponseHandle:
         """
 
         self.response = Response(header)
-        size = self.response.headers.get('content-length', 0)
+        size = self.response.headers.get('content-length', self.MAX_SIZE)
         size = int(size)
         self.tmpfile.start(self.response.fd, size, bdata)
 
         if self.MAX_SIZE <= size:
-            request.drive(self.ERROR, response, 'Content-length too long.')
+            self.request.drive(self.ERROR, self.response, SIZE_ERR)
 
     def handle_bdata(self, con, fd, data):
-        fd.seek(0)
+        print('CLOSE:', self.request.addr, 
+        self.request.c_attempts, self.response.code, 
+        self.response.headers.get('location'))
 
-        self.request.drive(self.response.code, self.response)
-        self.request.drive(ResponseHandle.RESPONSE, self.response)
         lose(con)
+        self.handle_response()
 
+    def handle_redirect(self):
+        # When a code means a redirect but no location then it is an error.
         location = self.response.headers.get('location')
         if location is not None:
             self.request.redirect(location)
         else:
+            self.request.drive(self.ERROR, self.response, RESP_ERR)
+    
+    def handle_connect_err(self, con, err):
+        self.request.drive(self.ERROR, self.response, CON_ERR)
+
+    def handle_response(self):
+        self.response.fd.seek(0)
+
+        self.request.drive(self.response.code, self.response)
+        self.request.drive(ResponseHandle.RESPONSE, self.response)
+
+        REDIRECT_CODES = ('301', '308', '302', '303', '307')
+        if self.response.code in REDIRECT_CODES:
+            self.handle_redirect()
+        else:
             self.request.drive(self.DONE, self.response)
 
     def handle_close(self, con, err):
-        self.request.drive(self.ERROR, self.response, 'Corrupted response.')
-        pass
+        if self.response is not None:
+            self.handle_response()
+        else:
+            self.handle_resp_err()
+
+    def handle_resp_err(self):
+        if self.request.c_attempts >= self.request.attempts:
+            self.request.drive(self.ERROR, self.response, RESP_ERR)
+        else:
+            self.request.reconnect()
 
 class Response:
     def __init__(self, data):
@@ -92,16 +129,19 @@ class Response:
         self.fd = TemporaryFile('w+b')
 
 class Request(Dispatcher):
-    def __init__(self, addr, headers, version, auth):
+    def __init__(self, addr, headers, version, auth, attempts=1):
         self.headers = default_headers.copy()
         self.version = version
         self.auth = auth
+        self.attempts = attempts
+        self.c_attempts = 0
+        self.addr = addr
 
         self.headers.update(headers)
         if auth: 
             self.headers['authorization'] = build_auth(*auth)
 
-        self.con = self.connect(addr)
+        self.con = self.connect(self.addr)
         super(Request, self).__init__()
 
     def on_connect(self, con):
@@ -117,14 +157,17 @@ class Request(Dispatcher):
         con.add_map(CONNECT,  self.on_connect)
         return con
 
+    def reconnect(self):
+        self.con = self.connect(self.addr)
+
     def connect(self, addr):
-        self.addr = addr.strip()
-        self.addr = self.addr.rstrip()
+        self.addr = addr.strip().rstrip()
         urlparser = urlparse(self.addr)
 
         port = urlparser.port
         if not port:
             port = getservbyname(urlparser.scheme)
+        self.c_attempts += 1
 
         # The hostname has to be here in case of redirect.
         self.headers['host'] = urlparser.hostname
@@ -137,10 +180,10 @@ class Request(Dispatcher):
 
 class Get(Request):
     def __init__(self, addr, args={}, 
-        headers={}, version='HTTP/1.1', auth=()):
+        headers={}, version='HTTP/1.1', auth=(), attempts=1):
 
         self.args = args
-        super(Get, self).__init__(addr, headers, version, auth)
+        super(Get, self).__init__(addr, headers, version, auth, attempts)
 
     def on_connect(self, con):
         ResponseHandle(self)
