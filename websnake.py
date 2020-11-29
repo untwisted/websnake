@@ -14,10 +14,15 @@ default_headers = {
 'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 'connection':'close'}
 
-MSGERR = ('Content-length too long', 'Corrupted response.')
 RESP_ERR = 0
 CON_ERR  = 1
 SIZE_ERR = 2
+
+ERR_CODES = {
+    RESP_ERR : 'Corrupted response.', 
+    CON_ERR  : 'Connection refused.', 
+    SIZE_ERR : 'Content-length too long'
+}
 
 class Headers:
     def __init__(self, data):
