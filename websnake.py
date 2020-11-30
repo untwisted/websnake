@@ -1,5 +1,6 @@
 from untwisted.client import lose, create_client, create_client_ssl
 from urllib.parse import urlencode, urlparse
+from untwisted.task import Task, DONE
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
 from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT, CONNECT_ERR
@@ -36,7 +37,7 @@ class Headers:
         return self.headers.get(field, default)
 
     def update(self, other):
-        for ind in other.headers.items:
+        for ind in other.headers.items():
             self.headers[ind[0].lower()] = ind[1]
 
 class ResponseHandle:
@@ -127,32 +128,37 @@ class Response:
         self.fd = TemporaryFile('w+b')
 
 class Request(Dispatcher):
-    def __init__(self, addr, headers, version, auth, attempts=1):
-        self.headers = default_headers.copy()
-        self.version = version
-        self.auth = auth
-        self.attempts = attempts
+    def __init__(self, addr, headers, version, auth, attempts=1, pool=None):
+        super(Request, self).__init__()
+
+        self.headers    = default_headers.copy()
+        self.version    = version
+        self.attempts   = attempts
         self.c_attempts = 0
+
+        self.auth = auth
         self.addr = addr
+        self.pool = pool
 
         self.headers.update(headers)
         if auth: 
             self.headers['authorization'] = build_auth(*auth)
 
         self.con = self.connect(self.addr)
-        super(Request, self).__init__()
+        if pool is not None:
+            pool.register(self)
 
-    def on_connect(self, con):
+    def handle_connect(self, con):
         pass
 
     def create_con_ssl(self, addr, port):
         con = create_client_ssl(addr, port)  
-        con.add_map(SSL_CONNECT,  self.on_connect)
+        con.add_map(SSL_CONNECT,  self.handle_connect)
         return con
     
     def create_con(self, addr, port):
         con = create_client(addr, port)
-        con.add_map(CONNECT,  self.on_connect)
+        con.add_map(CONNECT,  self.handle_connect)
         return con
 
     def reconnect(self):
@@ -178,12 +184,12 @@ class Request(Dispatcher):
 
 class Get(Request):
     def __init__(self, addr, args={}, 
-        headers={}, version='HTTP/1.1', auth=(), attempts=1):
+        headers={}, version='HTTP/1.1', auth=(), attempts=1, pool=None):
 
         self.args = args
-        super(Get, self).__init__(addr, headers, version, auth, attempts)
+        super(Get, self).__init__(addr, headers, version, auth, attempts, pool)
 
-    def on_connect(self, con):
+    def handle_connect(self, con):
         ResponseHandle(self)
         urlparser = urlparse(self.addr)
         resource  = ''
@@ -201,12 +207,12 @@ class Get(Request):
 
 class Post(Request):
     def __init__(self, addr, payload='b', 
-        headers={}, version='HTTP/1.1', auth=()):
+        headers={}, version='HTTP/1.1', auth=(), pool=None):
 
         self.payload = payload
-        super(Post, self).__init__(addr, headers, version, auth)
+        super(Post, self).__init__(addr, headers, version, auth, pool)
 
-    def on_connect(self, con):
+    def handle_connect(self, con):
         ResponseHandle(self)
 
         urlparser    = urlparse(self.addr)
@@ -217,6 +223,32 @@ class Post(Request):
     
         con.dump(request_text)
     
+class RequestPool(Task):
+    class EMPTY(Event):
+        pass
+
+    def __init__(self):
+        super(RequestPool, self).__init__()
+        self.add_map(DONE, self.handle_done)
+        self.responses = []
+
+    def handle_done(self, task):
+        self.drive(self.EMPTY)
+        die()
+
+    def register(self, request):
+        self.add(request, ResponseHandle.DONE, ResponseHandle.ERROR)
+        request.add_map(ResponseHandle.DONE, self.append_response)
+        request.add_map(ResponseHandle.ERROR, self.append_response)
+
+    def append_response(self, request, response, err=None):
+        self.responses.append(response)
+
+    def run(self):
+        self.start()
+        core.gear.mainloop()
+        return self.responses
+
 def build_headers(headers):
     data = ''
     for key, value in headers.items():
