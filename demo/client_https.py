@@ -17,8 +17,7 @@ def on_response(request, response):
     die('Request done.')
 
 if __name__ == '__main__':
-    request = Get('https://api.github.com/user', 
-    auth=('iogf', 'FuinhoSaliente'))
+    request = Get('https://www.google.com.br/')
     
     request.add_map(ResponseHandle.RESPONSE, on_response)
     core.gear.mainloop()

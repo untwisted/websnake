@@ -20,6 +20,12 @@ In Websnake HTTP response's codes turn into events, in this way it is possible t
 on with your request in an simple manner. The fact of being capable of mapping a handle to a specific
 HTTP response it makes applications on top of Websnake more modular.
 
+### Multiple Requests
+
+~~~python
+
+~~~
+
 ### Basic GET 
 
 The following example just fire three requests and wait for the response to be printed.
