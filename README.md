@@ -23,7 +23,6 @@ HTTP response it makes applications on top of Websnake more modular.
 ### Multiple Requests
 
 ~~~python
-
 ~~~
 
 ### Basic GET 

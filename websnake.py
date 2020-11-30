@@ -3,7 +3,7 @@ from urllib.parse import urlencode, urlparse
 from untwisted.task import Task, DONE
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
-from untwisted.event import Event, SSL_CONNECT, CLOSE, CONNECT, CONNECT_ERR
+from untwisted.event import Event, SSL_CONNECT, SSL_CONNECT_ERR, CLOSE, CONNECT, CONNECT_ERR
 from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
@@ -50,18 +50,14 @@ class ResponseHandle:
     class RESPONSE(Event):
         pass
 
-    MAX_SIZE = 1024 * 1024
+    MAX_SIZE = 1024 ** 8
     def __init__(self, request):
         self.request = request
         self.response = None
-
         self.acc = AccUntil(request.con)
-        self.tmpfile = TmpFile(request.con)
 
         request.con.add_map(AccUntil.DONE, self.handle_terminator)
         request.con.add_map(CLOSE,  self.handle_close)
-        request.con.add_map(CONNECT_ERR,  self.handle_connect_err)
-        self.request.con.add_map(TmpFile.DONE,  self.handle_bdata)
         self.acc.start()
 
     def handle_terminator(self, con, header, bdata):
@@ -71,14 +67,26 @@ class ResponseHandle:
         self.response = Response(header)
         size = self.response.headers.get('content-length', self.MAX_SIZE)
         size = int(size)
-        self.tmpfile.start(self.response.fd, size, bdata)
 
         if self.MAX_SIZE <= size:
-            self.request.drive(self.ERROR, self.response, SIZE_ERR)
+            self.handle_size_err()
+        else:
+            self.recv_data(size, bdata)
+
+    def recv_data(self, size, bdata):
+        tmpfile = TmpFile(self.request.con)
+
+        self.request.con.add_map(TmpFile.DONE,  self.handle_bdata)
+        tmpfile.start(self.response.fd, size, bdata)
 
     def handle_bdata(self, con, fd, data):
         lose(con)
         self.handle_response()
+
+    def handle_size_err(self):
+        self.request.drive(self.ERROR, self.response, SIZE_ERR)
+        self.request.con.destroy()
+        self.request.con.close()
 
     def handle_redirect(self):
         # When a code means a redirect but no location then it is an error.
@@ -88,12 +96,8 @@ class ResponseHandle:
         else:
             self.request.drive(self.ERROR, self.response, RESP_ERR)
     
-    def handle_connect_err(self, con, err):
-        self.request.drive(self.ERROR, self.response, CON_ERR)
-
     def handle_response(self):
         self.response.fd.seek(0)
-
         self.request.drive(self.response.code, self.response)
         self.request.drive(ResponseHandle.RESPONSE, self.response)
 
@@ -151,14 +155,20 @@ class Request(Dispatcher):
     def handle_connect(self, con):
         pass
 
+    def handle_connect_err(self, con, err):
+        # Response is None.        
+        self.request.drive(self.ERROR, None, CON_ERR)
+
     def create_con_ssl(self, addr, port):
         con = create_client_ssl(addr, port)  
         con.add_map(SSL_CONNECT,  self.handle_connect)
+        con.add_map(SSL_CONNECT_ERR,  self.handle_connect_err)
         return con
     
     def create_con(self, addr, port):
         con = create_client(addr, port)
         con.add_map(CONNECT,  self.handle_connect)
+        con.add_map(CONNECT_ERR,  self.handle_connect_err)
         return con
 
     def reconnect(self):
