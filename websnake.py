@@ -68,7 +68,7 @@ class ResponseHandle:
         size = self.response.headers.get('content-length', self.MAX_SIZE)
         size = int(size)
 
-        if self.MAX_SIZE <= size:
+        if self.MAX_SIZE < size:
             self.handle_size_err()
         else:
             self.recv_data(size, bdata)
@@ -95,7 +95,7 @@ class ResponseHandle:
             self.request.redirect(location)
         else:
             self.request.drive(self.ERROR, self.response, RESP_ERR)
-    
+
     def handle_response(self):
         self.response.fd.seek(0)
         self.request.drive(self.response.code, self.response)
@@ -241,6 +241,8 @@ class RequestPool(Task):
         super(RequestPool, self).__init__()
         self.add_map(DONE, self.handle_done)
         self.responses = []
+        self.error = []
+        self.start()
 
     def handle_done(self, task):
         self.drive(self.EMPTY)
@@ -249,15 +251,14 @@ class RequestPool(Task):
     def register(self, request):
         self.add(request, ResponseHandle.DONE, ResponseHandle.ERROR)
         request.add_map(ResponseHandle.DONE, self.append_response)
+        # request.add_map(ResponseHandle.ERROR, self.append_request)
         request.add_map(ResponseHandle.ERROR, self.append_response)
 
     def append_response(self, request, response, err=None):
         self.responses.append(response)
 
-    def run(self):
-        self.start()
-        core.gear.mainloop()
-        return self.responses
+    def append_request(self, request, response, err=None):
+        self.error.append(request)
 
 def build_headers(headers):
     data = ''

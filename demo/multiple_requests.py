@@ -1,10 +1,14 @@
 """
 """
 
-from websnake import Get, ResponseHandle, core, RequestPool
+from websnake import Get, ResponseHandle, core, RequestPool, die
 
 def handle_empty(pool):
     print('All requests done!')
+
+    for ind in pool.responses:
+        print('Code:', ind.code)
+    die()
 
 if __name__ == '__main__':
     urls = ('https://en.wikipedia.org/wiki/Leonhard_Euler', 
@@ -15,8 +19,5 @@ if __name__ == '__main__':
 
     for ind in urls:
         request = Get(ind, pool=pool)
-    responses = pool.run()
-
-    for ind in responses:
-        print(ind.code)
+    core.gear.mainloop()
 
