@@ -241,7 +241,7 @@ class RequestPool(Task):
         super(RequestPool, self).__init__()
         self.add_map(DONE, self.handle_done)
         self.responses = []
-        self.error = []
+        self.errors = []
         self.start()
 
     def handle_done(self, task):
@@ -251,14 +251,13 @@ class RequestPool(Task):
     def register(self, request):
         self.add(request, ResponseHandle.DONE, ResponseHandle.ERROR)
         request.add_map(ResponseHandle.DONE, self.append_response)
-        # request.add_map(ResponseHandle.ERROR, self.append_request)
-        request.add_map(ResponseHandle.ERROR, self.append_response)
+        request.add_map(ResponseHandle.ERROR, self.append_request)
 
-    def append_response(self, request, response, err=None):
+    def append_response(self, request, response):
         self.responses.append(response)
 
     def append_request(self, request, response, err=None):
-        self.error.append(request)
+        self.errors.append(request)
 
 def build_headers(headers):
     data = ''
