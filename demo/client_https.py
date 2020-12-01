@@ -1,14 +1,6 @@
-"""
-Overview
-========
-
-Retrieve user data from github.
-
-"""
-
 from websnake import Get, ResponseHandle, core, die
 
-def on_response(request, response):
+def handle_done(request, response):
     print('Headers:', response.headers)
     print('Code:', response.code)
     print('Version:', response.version)
@@ -19,11 +11,6 @@ def on_response(request, response):
 if __name__ == '__main__':
     request = Get('https://www.google.com.br/')
     
-    request.add_map(ResponseHandle.RESPONSE, on_response)
+    request.add_map(ResponseHandle.DONE, handle_done)
     core.gear.mainloop()
-
-
-
-
-
 
