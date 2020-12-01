@@ -202,7 +202,6 @@ class Get(Request):
     def handle_connect(self, con):
         ResponseHandle(self)
         urlparser = urlparse(self.addr)
-        resource  = ''
         resource  = urlparser.path
 
         if self.args or urlparser.query:
