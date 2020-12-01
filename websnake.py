@@ -1,4 +1,5 @@
 from untwisted.client import lose, create_client, create_client_ssl
+from urllib3.filepost import encode_multipart_formdata
 from urllib.parse import urlencode, urlparse
 from untwisted.task import Task, DONE
 from untwisted.splits import AccUntil, TmpFile
@@ -131,6 +132,20 @@ class Response:
         self.headers = Headers(data)
         self.fd = TemporaryFile('w+b')
 
+class FormData:
+    def __init__(self, data):
+        self.data = data
+
+    def dumps(self, request):
+        pass
+
+class JSON:
+    def __init__(self, data):
+        self.data = data
+
+    def dumps(self, request):
+        pass
+
 class Request(Dispatcher):
     def __init__(self, addr, headers, version, auth, attempts=1, pool=None):
         super(Request, self).__init__()
@@ -232,6 +247,13 @@ class Post(Request):
     
         con.dump(request_text)
     
+class Put(Request):
+    def __init__(self, addr, payload='b', 
+        headers={}, version='HTTP/1.1', auth=(), pool=None):
+
+        self.payload = payload
+        super(Put, self).__init__(addr, headers, version, auth, pool)
+
 class RequestPool(Task):
     class EMPTY(Event):
         pass
