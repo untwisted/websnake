@@ -1,4 +1,4 @@
-from websnake import Post, ResponseHandle, core, die, FormData, TokenAuth
+from websnake import Put, ResponseHandle, core, die, FormData, TokenAuth
 
 def on_done(con, response):
     print('Headers:', response.headers)
@@ -9,11 +9,12 @@ def on_done(con, response):
     die()
 
 if __name__ == '__main__':
-    url = 'http://httpbin.org/post'
+    url = 'http://httpbin.org/put'
     data = {'somekey': 'somevalue'}
 
-    request = Post(url, payload=FormData(data))
+    request = Put(url, payload=FormData(data))
 
     request.add_map(ResponseHandle.DONE, on_done)
     core.gear.mainloop()
+
 

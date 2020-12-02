@@ -146,6 +146,7 @@ class Response:
         encoding = self.header_encoding()
         if encoding is None:
             encoding = self.guess_encoding(data)
+        self.fd.seek(0)
         return data.decode(encoding)
 
     def header_encoding(self):
@@ -214,6 +215,7 @@ class Request(Dispatcher):
         self.auth = auth
         self.addr = addr
         self.pool = pool
+        self.method = None
 
         self.headers.update(headers)
         if auth is not None: 
@@ -252,7 +254,7 @@ class Request(Dispatcher):
         port = urlparser.port
         if not port:
             port = getservbyname(urlparser.scheme)
-        self.c_attempts += 1
+        self.c_attempts = self.c_attempts + 1
 
         # The hostname has to be here in case of redirect.
         self.headers['host'] = urlparser.hostname
@@ -266,14 +268,15 @@ class Request(Dispatcher):
 class Get(Request):
     def __init__(self, addr, args={}, 
         headers={}, version='HTTP/1.1', auth=None, attempts=1, pool=None):
+        super(Get, self).__init__(addr, headers, version, auth, attempts, pool)
 
         self.args = args
-        super(Get, self).__init__(addr, headers, version, auth, attempts, pool)
+        self.method = 'GET'
 
     def handle_connect(self, con):
         ResponseHandle(self)
         
-        request_text = make_method('GET', self.addr, self.args, self.version)
+        request_text = make_method(self.method, self.addr, self.args, self.version)
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text
         con.dump(request_text)
@@ -282,14 +285,16 @@ class Post(Request):
     def __init__(self, addr, args={}, payload=FormData({}), 
         headers={}, version='HTTP/1.1', auth=None, attempts=1, pool=None):
 
+        super(Post, self).__init__(addr, headers, version, auth, attempts, pool)
+
         self.args = args
         self.payload = payload
-        super(Post, self).__init__(addr, headers, version, auth, attempts, pool)
+        self.method = 'POST'
 
     def handle_connect(self, con):
         ResponseHandle(self)
 
-        request_text = make_method('POST', self.addr, self.args, self.version)
+        request_text = make_method(self.method, self.addr, self.args, self.version)
         data = self.payload.dumps(self)
 
         headers_text = build_headers(self.headers)
@@ -298,12 +303,13 @@ class Post(Request):
         request_text = request_text + data
         con.dump(request_text)
     
-class Put(Request):
-    def __init__(self, addr, payload='b', 
-        headers={}, version='HTTP/1.1', auth=(), pool=None):
+class Put(Post):
+    def __init__(self, addr, args={}, payload=FormData({}), 
+        headers={}, version='HTTP/1.1', auth=None, attempts=1, pool=None):
 
-        self.payload = payload
-        super(Put, self).__init__(addr, headers, version, auth, pool)
+        super(Put, self).__init__(addr, args, payload, headers, 
+        version, auth, attempts, pool)
+        self.method = 'PUT'
 
 class RequestPool(Task):
     class EMPTY(Event):
