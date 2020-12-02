@@ -8,11 +8,9 @@ It is possible to fire multiple http/https requests asynchronously with websnake
 
 - **Http/Https**
 
-- **Easy to play :P**
-
-- **GET/POST requests**
-
 - **Basic AUTH support**
+
+- **Automatic Content Decoding**
 
 - **Non-blocking I/O**
 
@@ -68,7 +66,7 @@ def handle_done(request, response):
     print('Code:', response.code)
     print('Version:', response.version)
     print('Reason:', response.reason) 
-    print('Data:', response.fd.read())
+    print('Data:', response.content())
     die('Request done.')
 
 if __name__ == '__main__':
@@ -92,30 +90,26 @@ In the above example it could be done.
 The example below creates a simple gist on github.
 
 ~~~python
-from websnake import Post, ResponseHandle
-from untwisted.network import core
-from untwisted.core import die
-import json
+from websnake import Post, ResponseHandle, core, die, JSon, TokenAuth
 
-def on_done(con, response):
-    print(response.fd.read())
+def handle_done(con, response):
+    print('Headers:', response.headers.headers)
+    print('Code:', response.code)
+    print('Version:', response.version)
+    print('Reason:', response.reason) 
+    print('Data:', response.content())
     die()
 
 if __name__ == '__main__':
-    API_TOKEN = ''
-    payload = {
+    data = {
     "description": "the description for this gist1",
-    "public": "true", "files": {
+    "public": True, "files": {
     "file1.txt": {"content": "String file contents"}}}
 
+    request = Post('https://api.github.com/gists', args = {'scope': 'gist'},
+    payload=JSon(data), auth = TokenAuth('API_TOKEN'))
 
-    request = Post('https://api.github.com/gists',
-    payload=json.dumps(payload).encode('utf8'), 
-    headers={'content-type': 'application/json',
-    'authorization': 'token %s' % API_TOKEN})
-
-    request.add_map(ResponseHandle.DONE, on_done)
-
+    request.add_map(ResponseHandle.DONE, handle_done)
     core.gear.mainloop()
 ~~~
 

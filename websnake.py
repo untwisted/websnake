@@ -5,11 +5,13 @@ from untwisted.task import Task, DONE
 from untwisted.splits import AccUntil, TmpFile
 from untwisted.dispatcher import Dispatcher
 from untwisted.event import Event, SSL_CONNECT, SSL_CONNECT_ERR, CLOSE, CONNECT, CONNECT_ERR
+from cgi import FieldStorage, parse_header
 from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
 from untwisted.core import die
 from untwisted import core
+import chardet
 import json
 
 default_headers = {
@@ -138,6 +140,21 @@ class Response:
         self.reason  = code[2]
         self.headers = Headers(data)
         self.fd = TemporaryFile('w+b')
+
+    def content(self):
+        data = self.fd.read()
+        encoding = self.header_encoding()
+        if encoding is None:
+            encoding = self.guess_encoding(data)
+        return data.decode(encoding)
+
+    def header_encoding(self):
+        ctype = self.headers.get('content-type')
+        if ctype is not None:
+            parse_header(ctype)[1].get('charset')
+
+    def guess_encoding(self, data):
+        return chardet.detect(data)['encoding']
 
 class RequestData:
     pass

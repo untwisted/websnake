@@ -5,7 +5,7 @@ def handle_done(request, response):
     print('Code:', response.code)
     print('Version:', response.version)
     print('Reason:', response.reason) 
-    print('Data:', response.fd.read())
+    print('Data:', response.content())
     die('Request done.')
 
 if __name__ == '__main__':
