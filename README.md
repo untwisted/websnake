@@ -16,7 +16,7 @@ It is possible to fire multiple http/https requests asynchronously with Websnake
 
 - **Anti Throttle Mechanism**
     
-- **Response Size Limit **
+- **Response Size Limit**
 
 - **Non-blocking I/O**
 
