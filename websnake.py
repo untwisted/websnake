@@ -10,9 +10,10 @@ from tempfile import TemporaryFile
 from socket import getservbyname
 from untwisted.core import die
 from untwisted import core
+import json
 
 default_headers = {
-'user-agent':'Websnake/1.0.0', 
+'user-agent':'Websnake', 
 'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
 'connection':'close'}
 
@@ -132,20 +133,52 @@ class Response:
         self.headers = Headers(data)
         self.fd = TemporaryFile('w+b')
 
-class FormData:
+class RequestData:
+    pass
+
+class FormData(RequestData):
     def __init__(self, data):
         self.data = data
 
     def dumps(self, request):
-        pass
+        data, type = encode_multipart_formdata(self.data)
+        request.headers['content-type'] = type
+        request.headers['content-length'] = len(data)
+        return data
 
-class JSON:
+class JSon(RequestData):
     def __init__(self, data):
         self.data = data
 
     def dumps(self, request):
-        pass
+        request.headers['content-type'] = 'application/json'
+        data = json.dumps(self.data).encode('utf8')
+        request.headers['content-length'] = len(data)
+        return data
 
+class RequestAuth:
+    pass
+
+class BasicAuth(RequestAuth):
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+    def dumps(self, request):
+        self.key = self.key.encode('utf8')
+        self.value = self.value.encode('utf8')
+    
+        base = encodebytes(b'%s:%s' % (self.key, self.value))
+        base = base.replace(b'\n', b'').decode('utf8')
+        request.headers['authorization'] = base
+    
+class TokenAuth(RequestAuth):
+    def __init__(self, token_value):
+        self.token_value = token_value
+
+    def dumps(self, request):
+        request.headers['authorization'] = 'token %s' % self.token_value
+    
 class Request(Dispatcher):
     def __init__(self, addr, headers, version, auth, attempts=1, pool=None):
         super(Request, self).__init__()
@@ -161,7 +194,7 @@ class Request(Dispatcher):
 
         self.headers.update(headers)
         if auth: 
-            self.headers['authorization'] = build_auth(*auth)
+            auth.dumps(self)
 
         self.con = self.connect(self.addr)
         if pool is not None:
@@ -216,35 +249,29 @@ class Get(Request):
 
     def handle_connect(self, con):
         ResponseHandle(self)
-        urlparser = urlparse(self.addr)
-        resource  = urlparser.path
-
-        if self.args or urlparser.query:
-            resource = ''.join(resource, 
-                '?', urlparser.query, urlencode(self.args))
         
-        request_text = 'GET %s %s\r\n' % (resource, self.version)
+        request_text = make_method('GET', self.addr, self.args, self.version)
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text
-        request_text = request_text.encode('ascii')
         con.dump(request_text)
 
 class Post(Request):
-    def __init__(self, addr, payload='b', 
+    def __init__(self, addr, args={}, payload=FormData({}), 
         headers={}, version='HTTP/1.1', auth=(), pool=None):
 
+        self.args = args
         self.payload = payload
         super(Post, self).__init__(addr, headers, version, auth, pool)
 
     def handle_connect(self, con):
         ResponseHandle(self)
 
-        urlparser    = urlparse(self.addr)
-        request_text = 'POST %s %s\r\n' % (urlparser.path, self.version)
+        request_text = make_method('POST', self.addr, self.args, self.version)
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text 
-        request_text = request_text.encode('ascii') + self.payload
-    
+
+        data = self.payload.dumps(self)
+        request_text = request_text + data
         con.dump(request_text)
     
 class Put(Request):
@@ -280,17 +307,19 @@ class RequestPool(Task):
     def append_request(self, request, response, err=None):
         self.errors.append(request)
 
+def make_method(method, addr, args, version):
+        urlparser = urlparse(addr)
+        resource  = urlparser.path if urlparser.path else '/'
+
+        if args or urlparser.query:
+            resource = ''.join((resource, '?', urlparser.query, urlencode(args)))
+        httpcmd = '%s %s %s\r\n' % (method, resource, version)
+        print(httpcmd)
+        return httpcmd.encode('ascii')
+
 def build_headers(headers):
     data = ''
     for key, value in headers.items():
         data = data + '%s: %s\r\n' % (key, value)
     data = data + '\r\n'
-    return data
-
-def build_auth(username, password):
-    username = username.encode('utf8')
-    password = password.encode('utf8')
-
-    base = encodebytes(b'%s:%s' % (username, password))
-    base = base.replace(b'\n', b'').decode('utf8')
-    return "Basic %s" % base
+    return data.encode('ascii')

@@ -12,7 +12,7 @@ def handle_empty(pool):
 
 if __name__ == '__main__':
     urls = ('https://en.wikipedia.org/wiki/Leonhard_Euler', 
-    'https://www.google.com.br/','https://facebook.com/') 
+    'https://www.google.com.br','https://facebook.com/') 
 
     pool = RequestPool()
     pool.add_map(RequestPool.EMPTY, handle_empty)
