@@ -1,8 +1,8 @@
 # Websnake
 
-Asynchronous http/https requests in python (for humans).
+Asynchronous http/https requests in Python.
 
-It is possible to fire multiple http/https requests asynchronously with websnake. 
+It is possible to fire multiple http/https requests asynchronously with Websnake. 
 
 # Features
 
