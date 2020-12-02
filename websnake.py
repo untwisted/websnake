@@ -42,6 +42,12 @@ class Headers:
         for ind in other.headers.items():
             self.headers[ind[0].lower()] = ind[1]
 
+    def __str__(self):
+        return self.headers.__str__()
+
+    def __repr__(self):
+        return self.headers.__repr__()
+
 class ResponseHandle:
     class DONE(Event):
         pass
@@ -151,7 +157,7 @@ class JSon(RequestData):
         self.data = data
 
     def dumps(self, request):
-        request.headers['content-type'] = 'application/json'
+        request.headers['content-type'] = 'application/json; charset=utf-8'
         data = json.dumps(self.data).encode('utf8')
         request.headers['content-length'] = len(data)
         return data
@@ -180,7 +186,7 @@ class TokenAuth(RequestAuth):
         request.headers['authorization'] = 'token %s' % self.token_value
     
 class Request(Dispatcher):
-    def __init__(self, addr, headers, version, auth, attempts=1, pool=None):
+    def __init__(self, addr, headers, version, auth, attempts, pool):
         super(Request, self).__init__()
 
         self.headers    = default_headers.copy()
@@ -193,7 +199,7 @@ class Request(Dispatcher):
         self.pool = pool
 
         self.headers.update(headers)
-        if auth: 
+        if auth is not None: 
             auth.dumps(self)
 
         self.con = self.connect(self.addr)
@@ -242,7 +248,7 @@ class Request(Dispatcher):
 
 class Get(Request):
     def __init__(self, addr, args={}, 
-        headers={}, version='HTTP/1.1', auth=(), attempts=1, pool=None):
+        headers={}, version='HTTP/1.1', auth=None, attempts=1, pool=None):
 
         self.args = args
         super(Get, self).__init__(addr, headers, version, auth, attempts, pool)
@@ -257,20 +263,21 @@ class Get(Request):
 
 class Post(Request):
     def __init__(self, addr, args={}, payload=FormData({}), 
-        headers={}, version='HTTP/1.1', auth=(), pool=None):
+        headers={}, version='HTTP/1.1', auth=None, attempts=1, pool=None):
 
         self.args = args
         self.payload = payload
-        super(Post, self).__init__(addr, headers, version, auth, pool)
+        super(Post, self).__init__(addr, headers, version, auth, attempts, pool)
 
     def handle_connect(self, con):
         ResponseHandle(self)
 
         request_text = make_method('POST', self.addr, self.args, self.version)
+        data = self.payload.dumps(self)
+
         headers_text = build_headers(self.headers)
         request_text = request_text + headers_text 
 
-        data = self.payload.dumps(self)
         request_text = request_text + data
         con.dump(request_text)
     
@@ -312,9 +319,8 @@ def make_method(method, addr, args, version):
         resource  = urlparser.path if urlparser.path else '/'
 
         if args or urlparser.query:
-            resource = ''.join((resource, '?', urlparser.query, urlencode(args)))
+            resource = ''.join((resource, '?', urlparser.query, urlencode(args, doseq=True)))
         httpcmd = '%s %s %s\r\n' % (method, resource, version)
-        print(httpcmd)
         return httpcmd.encode('ascii')
 
 def build_headers(headers):
