@@ -8,9 +8,15 @@ It is possible to fire multiple http/https requests asynchronously with websnake
 
 - **Http/Https**
 
-- **Basic AUTH support**
+- **Basic Authentication support**
+
+- **Token Authentication support**
 
 - **Automatic Content Decoding**
+
+- **Anti Throttle Mechanism**
+    
+- **Response Size Limit **
 
 - **Non-blocking I/O**
 
