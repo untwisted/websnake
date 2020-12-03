@@ -1,5 +1,5 @@
 ##############################################################################
-# push, websnake, github.
+# push websnake.
 cd ~/projects/websnake-code
 git status
 git add *

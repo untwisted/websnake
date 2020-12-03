@@ -91,6 +91,12 @@ In the above example it could be done.
     request.add_map('400', handle_done)
 ~~~
 
+or 
+
+~~~
+    request.add_map('200', handle_done)
+~~~
+
 ### Basic POST 
 
 The example below creates a simple gist on github.
