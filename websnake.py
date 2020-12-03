@@ -347,13 +347,13 @@ class RequestPool(Task):
         self.errors.append(request)
 
 def make_method(method, addr, args, version):
-        urlparser = urlparse(addr)
-        resource  = urlparser.path if urlparser.path else '/'
+    urlparser = urlparse(addr)
+    resource  = urlparser.path if urlparser.path else '/'
 
-        if args or urlparser.query:
-            resource = ''.join((resource, '?', urlparser.query, urlencode(args, doseq=True)))
-        httpcmd = '%s %s %s\r\n' % (method, resource, version)
-        return httpcmd.encode('ascii')
+    if args or urlparser.query:
+        resource = ''.join((resource, '?', urlparser.query, urlencode(args, doseq=True)))
+    httpcmd = '%s %s %s\r\n' % (method, resource, version)
+    return httpcmd.encode('ascii')
 
 def build_headers(headers):
     data = ''

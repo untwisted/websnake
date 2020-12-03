@@ -2,7 +2,15 @@
 
 Asynchronous http/https requests in Python.
 
-It is possible to fire multiple http/https requests asynchronously with Websnake. 
+Websnake allows multiple http/https requests to be fired asynchronously.
+In Websnake HTTP response's codes turn into events and handles can be binded to
+HTTP response codes. 
+
+A Web request in Websnake is an event emitter and its possible events are HTTP
+response codes. That means one can have handles executed for specific HTTP status codes.
+
+Websnake allow to fire new Web requests from response handles it makes implementing
+a variety of other tools like Web Crawlers etc. 
 
 # Features
 
@@ -19,10 +27,6 @@ It is possible to fire multiple http/https requests asynchronously with Websnake
 - **Response Size Limit**
 
 - **Non-blocking I/O**
-
-In Websnake HTTP response's codes turn into events, in this way it is possible to keep track of what is going
-on with your request in an simple manner. The fact of being capable of mapping a handle to a specific
-HTTP response it makes applications on top of Websnake more modular.
 
 ### Multiple Requests
 
