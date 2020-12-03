@@ -56,15 +56,6 @@ class Headers:
     def __repr__(self):
         return self.headers.__repr__()
 
-    def issubset(self, other):
-        hset = set((ind[0].lower(), ind[1]) 
-        for ind in other.items())
-
-        for ind in self.headers.items():
-            if not (ind[0], ind[1]) in hset:
-                return False
-        return True
-
 class ResponseHandle:
     class DONE(Event):
         pass
