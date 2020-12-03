@@ -1,6 +1,6 @@
 from websnake import Head, ResponseHandle, core, die, FormData, TokenAuth
 
-def on_done(con, response):
+def handle_done(con, response):
     print('Headers:', response.headers)
     print('Code:', response.code)
     print('Version:', response.version)
@@ -12,7 +12,7 @@ if __name__ == '__main__':
     url = 'http://httpbin.org/head'
     request = Head(url)
 
-    request.add_map(ResponseHandle.DONE, on_done)
+    request.add_map(ResponseHandle.DONE, handle_done)
     core.gear.mainloop()
 
 

@@ -8,6 +8,8 @@ def handle_empty(pool):
 
     for ind in pool.responses:
         print('Code:', ind.code)
+    for ind in pool.errors:
+        print(ind.addr)
     die()
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@ from base64 import encodebytes
 from tempfile import TemporaryFile 
 from socket import getservbyname
 from untwisted.core import die
+from re import split
 from untwisted import core
 import chardet
 import json
@@ -32,13 +33,18 @@ ERR_CODES = {
 class Headers:
     def __init__(self, data):
         self.headers = dict()
-        for ind in data:
-            field, sep, value = ind.partition(':')
+        lines = data.split('\r\n')
+
+        for ind in lines:
+            field, value = split(' *: *', ind, 1)
             self.headers[field.lower()] = value
 
     def get(self, field, default=None):
         field = field.lower()
         return self.headers.get(field, default)
+
+    def set(self, field, value):
+        self.headers[field.lower()] == value
 
     def update(self, other):
         for ind in other.headers.items():
@@ -49,6 +55,15 @@ class Headers:
 
     def __repr__(self):
         return self.headers.__repr__()
+
+    def issubset(self, other):
+        hset = set((ind[0].lower(), ind[1]) 
+        for ind in other.items())
+
+        for ind in self.headers.items():
+            if not (ind[0], ind[1]) in hset:
+                return False
+        return True
 
 class ResponseHandle:
     class DONE(Event):
@@ -131,14 +146,13 @@ class ResponseHandle:
 
 class Response:
     def __init__(self, data):
-        data = data.decode('utf8').split('\r\n')
-        response = data.pop(0)
-        code = response.split(' ', 2)
-
+        data = data.decode('utf8')
+        method, hdata = data.split('\r\n', 1)
+        code = method.split(' ', 2)
         self.version = code[0]
         self.code    = code[1]
         self.reason  = code[2]
-        self.headers = Headers(data)
+        self.headers = Headers(hdata)
         self.fd = TemporaryFile('w+b')
 
     def content(self):
@@ -147,7 +161,10 @@ class Response:
         if encoding is None:
             encoding = self.guess_encoding(data)
         self.fd.seek(0)
-        return data.decode(encoding)
+
+        if encoding:
+            return data.decode(encoding)
+        return data
 
     def header_encoding(self):
         ctype = self.headers.get('content-type')
