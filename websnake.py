@@ -320,6 +320,15 @@ class Delete(Get):
 
         self.method = 'DELETE'
 
+class Head(Get):
+    def __init__(self, addr, args={}, headers={}, 
+        version='HTTP/1.1', auth=None, attempts=1, pool=None):
+
+        super(Head, self).__init__(addr, args, headers, 
+        version, auth, attempts, pool)
+
+        self.method = 'HEAD'
+
 class RequestPool(Task):
     class EMPTY(Event):
         pass
