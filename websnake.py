@@ -352,6 +352,8 @@ def make_method(method, addr, args, version):
 
     if args or urlparser.query:
         resource = ''.join((resource, '?', urlparser.query, urlencode(args, doseq=True)))
+    if urlparser.fragment:
+        resource = ''.join((resource, '#', urlparser.fragment))
     httpcmd = '%s %s %s\r\n' % (method, resource, version)
     return httpcmd.encode('ascii')
 
