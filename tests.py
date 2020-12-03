@@ -50,49 +50,21 @@ class TestGet1(unittest.TestCase):
 
 class TestGet2(unittest.TestCase):
     def setUp(self):
-        url = 'https://httpbin.org/get'
+        self.url = 'https://httpbin.org/get?e=1&u=2'
 
         auth = TokenAuth('fooobar')
-        self.request = Get(url, auth=auth)
+        self.request = Get(self.url, auth=auth)
         self.request.add_map(ResponseHandle.DONE, self.handle_done)
     
     def handle_done(self, request, response):
         response_data = response.content()
         response_data = json.loads(response_data)
-        authorization = response_data['headers']['Authorization']
-        self.assertEqual(authorization, request.headers['authorization'])
+        self.assertEqual(self.url, response_data['url'])
         die()
 
     def test_get(self):
         core.gear.mainloop()
 
-class TestGet3(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def handle_400(self, request, response):
-        pass
-
-class TestGet4(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def handle_error(self, request, response, err):
-        pass
-
-class TestGet5(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def handle_error(self, request, response, err):
-        pass
-
-class TestGet6(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def handle_error(self, request, response, err):
-        pass
 
 
 

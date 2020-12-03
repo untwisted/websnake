@@ -151,10 +151,10 @@ class Response:
         encoding = self.header_encoding()
         if encoding is None:
             encoding = self.guess_encoding(data)
-        self.fd.seek(0)
 
         if encoding:
             return data.decode(encoding)
+        self.fd.close()
         return data
 
     def header_encoding(self):
