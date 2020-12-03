@@ -311,6 +311,15 @@ class Put(Post):
         version, auth, attempts, pool)
         self.method = 'PUT'
 
+class Delete(Get):
+    def __init__(self, addr, args={}, headers={}, 
+        version='HTTP/1.1', auth=None, attempts=1, pool=None):
+
+        super(Delete, self).__init__(addr, args, headers, 
+        version, auth, attempts, pool)
+
+        self.method = 'DELETE'
+
 class RequestPool(Task):
     class EMPTY(Event):
         pass
