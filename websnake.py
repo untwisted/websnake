@@ -148,13 +148,13 @@ class Response:
 
     def content(self):
         data = self.fd.read()
+        self.fd.close()
         encoding = self.header_encoding()
         if encoding is None:
             encoding = self.guess_encoding(data)
 
         if encoding:
             return data.decode(encoding)
-        self.fd.close()
         return data
 
     def header_encoding(self):
