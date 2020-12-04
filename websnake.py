@@ -12,7 +12,6 @@ from socket import getservbyname
 from untwisted.core import die
 from re import split
 from untwisted import core
-import chardet
 import json
 
 default_headers = {
@@ -149,25 +148,21 @@ class Response:
 
     def content(self):
         data = self.fd.read()
-        # self.fd.close()
+        self.fd.seek(0)
+
         encoding = self.header_encoding()
         if encoding is None:
-            encoding = self.guess_encoding(data)
+            return data
 
-        if encoding:
+        try:
             return data.decode(encoding)
-        return data
+        except UnicodeDecodeError as e:
+            return data
 
     def header_encoding(self):
         ctype = self.headers.get('content-type')
         if ctype is not None:
-            parse_header(ctype)[1].get('charset')
-
-    def guess_encoding(self, data):
-        return chardet.detect(data)['encoding']
-
-    def releasefd(self):
-        self.fd.close()
+            return parse_header(ctype)[1].get('charset')
 
 class RequestData:
     pass
