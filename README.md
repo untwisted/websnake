@@ -85,8 +85,11 @@ if __name__ == '__main__':
 ~~~
 
 Websnake requests are event emitters, you can bind a status code like '400' to a handle
-then getting the handle executed when the response status code is '400'. When you don't care
-for a specific HTTP response code you use ResponseHandle.DONE as event to map your handles.
+then getting the handle executed when the response status code is '400'. 
+
+When you don't care for a specific HTTP response code you use ResponseHandle.DONE as event 
+to map your handles. There is also ResponseHandle.ERROR that happens when some unexpected error
+occurred.
 
 ### Basic POST 
 
