@@ -36,32 +36,26 @@ it calls handle_empty handle.
 ~~~python
 from websnake import Get, ResponseHandle, core, RequestPool, die
 
+def handle_done(request, response):
+    print('Headers:', response.headers)
+    print('Code:', response.code)
+    print('Version:', response.version)
+    print('Reason:', response.reason) 
+
 def handle_empty(pool):
     print('All requests done!')
-
-    for ind in pool.responses:
-        print('Code:', ind.code)
-    die()
+    die('Stopping...')
 
 if __name__ == '__main__':
     urls = ('https://en.wikipedia.org/wiki/Leonhard_Euler', 
-    'https://www.google.com.br/','https://facebook.com/') 
+    'https://www.google.com.br','https://facebook.com/') 
 
     pool = RequestPool()
     pool.add_map(RequestPool.EMPTY, handle_empty)
 
     for ind in urls:
-        request = Get(ind, pool=pool)
+        Get(ind, pool=pool).add_map(ResponseHandle.DONE, handle_done)
     core.gear.mainloop()
-~~~
-
-That would output:
-
-~~~
-All requests done!
-Code: 200
-Code: 200
-Code: 200
 ~~~
 
 ### Basic GET 

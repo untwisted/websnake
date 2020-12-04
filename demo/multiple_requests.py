@@ -21,7 +21,6 @@ if __name__ == '__main__':
     pool.add_map(RequestPool.EMPTY, handle_empty)
 
     for ind in urls:
-        Get(ind, pool=pool).add_map(
-            ResponseHandle.DONE, handle_done)
+        Get(ind, pool=pool).add_map(ResponseHandle.DONE, handle_done)
     core.gear.mainloop()
 
