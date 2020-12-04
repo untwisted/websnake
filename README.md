@@ -2,15 +2,19 @@
 
 Asynchronous HTTP/HTTPS requests in Python.
 
-Websnake allows multiple requests to be fired asynchronously.
-In Websnake HTTP response's codes turn into events and handles can be binded to
-HTTP response codes. 
+Websnake allows multiple requests to be fired asynchronously. It is built on top of 
+[Untwisted](https://github.com/untwisted/untwisted/) that is an Event Driven Framework for Python.
 
 A Web request in Websnake is an event emitter and its possible events are HTTP
-response codes. That means one can have handles executed for specific HTTP status codes.
+response codes.  
 
-Websnake allow to fire new Web requests from response handles it makes Websnake
-a decent tool to use for implementing Web Crawlers etc.
+Websnake allows multiple handles to be executed for a specific request's response. 
+It also allows to fire new Web requests from response handles and a fine control on when
+HTTP redirects happen. 
+
+Websnake makes it easy to extract content that depends on the extraction of previous content from the Web.
+It makes Websnake an ideal tool to handle a variety of complex or simple scenaries like 
+implementing Web Crawlers etc.
 
 # Features
 
