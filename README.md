@@ -30,8 +30,8 @@ a variety of other tools like Web Crawlers etc.
 
 ### Multiple Requests
 
-The example below shows how to peform multiple requests. When all requests are finished
-it calls handle_empty handle.
+Websnake has a RequestPool event emitter to bind handles to be executed when specific
+requests are finished. In the below example when all requests are finished it just quits.
 
 ~~~python
 from websnake import Get, ResponseHandle, core, RequestPool, die
@@ -76,24 +76,13 @@ def handle_done(request, response):
 if __name__ == '__main__':
     request = Get('https://www.google.com.br/')
     
-    request.add_map(ResponseHandle.DONE, handle_done)
+    request.add_map('200', handle_done)
     core.gear.mainloop()
 ~~~
 
 Websnake requests are event emitters, you can bind a status code like '400' to a handle
-then getting the handle executed when the response status code is '400'.
-
-In the above example it could be done.
-
-~~~
-    request.add_map('400', handle_done)
-~~~
-
-or 
-
-~~~
-    request.add_map('200', handle_done)
-~~~
+then getting the handle executed when the response status code is '400'. When you don't care
+for a specific HTTP response code you use ResponseHandle.DONE as event to map your handles.
 
 ### Basic POST 
 
@@ -131,3 +120,8 @@ if __name__ == '__main__':
 pip install -r requirements.txt
 pip install websnake
 ~~~
+
+Documentation
+=============
+
+[Websnake Documentation](https://github.com/untwisted/websnake/wiki)

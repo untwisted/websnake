@@ -11,6 +11,6 @@ def handle_done(request, response):
 if __name__ == '__main__':
     request = Get('https://www.google.com.br/')
     
-    request.add_map(ResponseHandle.DONE, handle_done)
+    request.add_map('200', handle_done)
     core.gear.mainloop()
 
