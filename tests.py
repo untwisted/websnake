@@ -5,14 +5,6 @@ from urllib.parse import urlencode, urlparse
 import unittest
 import json
 
-def cmp_headers(headers0, headers1):
-    hset0 = set(((ind[0].lower(), ind[1]) 
-    for ind in headers0.items()))
-
-    hset1 = set(((ind[0].lower(), ind[1]) 
-        for ind in headers1.items()))
-    return hset0.issubset(hset1)
-
 class TestGet0(unittest.TestCase):
     def setUp(self):
         url = 'http://httpbin.org/get'
@@ -64,6 +56,28 @@ class TestGet2(unittest.TestCase):
 
     def test_get(self):
         core.gear.mainloop()
+
+class TestGet3(unittest.TestCase):
+    def setUp(self):
+        self.url = 'https://httpbin.org/redirect{3}'
+
+        # Send a token auth.
+        auth = TokenAuth('fooobar')
+        self.request = Get(self.url, auth=auth)
+        self.request.add_map(ResponseHandle.RESPONSE, self.handle_done)
+    
+    def handle_done(self, request, response):
+        response_data = response.content()
+
+        print(response.code)
+        die()
+
+    def test_get(self):
+        core.gear.mainloop()
+
+
+
+
 
 
 

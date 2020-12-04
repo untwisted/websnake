@@ -122,6 +122,7 @@ class ResponseHandle:
             self.handle_redirect()
         else:
             self.request.drive(self.DONE, self.response)
+        self.response.fd.close()
 
     def handle_close(self, con, err):
         if self.response is not None:
@@ -148,7 +149,7 @@ class Response:
 
     def content(self):
         data = self.fd.read()
-        self.fd.close()
+        # self.fd.close()
         encoding = self.header_encoding()
         if encoding is None:
             encoding = self.guess_encoding(data)
@@ -164,6 +165,9 @@ class Response:
 
     def guess_encoding(self, data):
         return chardet.detect(data)['encoding']
+
+    def releasefd(self):
+        self.fd.close()
 
 class RequestData:
     pass
@@ -214,12 +218,10 @@ class TokenAuth(RequestAuth):
 class Request(Dispatcher):
     def __init__(self, addr, headers, version, auth, attempts, pool):
         super(Request, self).__init__()
-
         self.headers    = default_headers.copy()
         self.version    = version
         self.attempts   = attempts
         self.c_attempts = 0
-
         self.auth = auth
         self.addr = addr
         self.pool = pool

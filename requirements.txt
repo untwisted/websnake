@@ -1,4 +1,4 @@
-untwisted==3.2.1
+untwisted==3.2.2
 chardet
 
 
