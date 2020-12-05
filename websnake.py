@@ -102,7 +102,7 @@ class ResponseHandle:
         self.request.drive(self.ERROR, self.response, SIZE_ERR)
         self.request.con.destroy()
         self.request.con.close()
-        # Gotta close self.response.fd here.
+        self.response.fd.close()
 
     def handle_redirect(self):
         # When a code means a redirect but no location then it is an error.
