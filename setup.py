@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 setup(name="websnake",
-      version="3.1.0",
+      version="3.1.1",
       py_modules=['websnake'],
       author="Iury O. G. Figueiredo",
       author_email="ioliveira@id.uff.br",
