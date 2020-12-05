@@ -1,4 +1,4 @@
-from websnake import Delete, ResponseHandle, core, die, FormData, TokenAuth
+from websnake import Delete, ResponseHandle, core, die
 
 def on_done(con, response):
     print('Headers:', response.headers)
